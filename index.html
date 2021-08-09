@@ -1,9 +1,57 @@
 <html>
 <head>
     <title>B21 Task Planner</title>
-</head>
-<body>
-<h1>B21 Task Planner</h1>
 
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin=""/>
+    <!-- Make sure you put this AFTER Leaflet's CSS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+        crossorigin=""></script>
+
+    <link href="style/main.css" rel="stylesheet"/>
+    <link href="style/leaflet_mods.css" rel="stylesheet"/>
+
+    <script src="js/b21_task_planner.js"> </script>
+
+<script>
+var b21_task_planner;
+
+// REQUIRED - this function is added as an 'onClick' to popup menu items
+function menuitem(str) {
+    console.log("calling page menuitem with ",str);
+    b21_task_planner[str]();
+}
+
+function change_wp_name(new_value) {
+    b21_task_planner.change_wp_name(new_value);
+}
+
+function change_wp_alt(new_value) {
+    b21_task_planner.change_wp_alt(new_value);
+}
+
+function loaded() {
+    b21_task_planner = new B21TaskPlanner();
+    b21_task_planner.init();
+}
+
+</script>
+</head>
+<body onload="loaded()">
+    <div class="header">
+        <div class="title">B21 Task Planner [<a href="help.html">help</a>]</div>
+        <div class="units"></div>
+    </div>
+
+    <div id="panes">
+        <div id="left_pane">
+            <div id="task_list"></div>
+        </div> <!-- end left_pane -->
+        <div id="map_pane">
+            <div id="map"></div>
+        </div>
+    </div> <!-- end panes -->
 </body>
 </html>
