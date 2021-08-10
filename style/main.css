@@ -20,6 +20,10 @@ body {
     display: inline-block;
 }
 
+#buttons {
+    margin-bottom: 4px;
+}
+
 #panes {
     height: 93%;
 }

@@ -3,12 +3,16 @@
 class B21TaskPlanner {
 
     constructor() {
+        this.M_TO_FEET = 3.28084;
+        this.M_TO_MILES = 0.000621371;
     }
 
     init() {
         let parent = this;
 
         this.load_settings();
+
+        this.display_units_buttons();
 
         // Where you want to render the map.
         const element = document.getElementById('map');
@@ -38,8 +42,17 @@ class B21TaskPlanner {
 
         this.map.on('contextmenu', (e) => {parent.map_right_click(parent, e);} );
 
+        this.map.on("moveend", () => {
+            parent.save_map_coords(parent.map.getCenter(), parent.map.getZoom());
+        });
+
         // Task object to hold accumulated waypoints
         this.task = new Task(this);
+    }
+
+    save_map_coords(center, zoom) {
+        console.log(center.toString(), zoom);
+        localStorage.setItem("b21_task_planner_map_coords", center.lat.toFixed(6)+","+center.lng.toFixed(6)+","+zoom);
     }
 
     map_left_click(parent, e) {
@@ -112,9 +125,21 @@ class B21TaskPlanner {
         console.log("download()");
     }
 
+    display_units_buttons() {
+        document.getElementById("elevation_units").innerHTML = "Elevation in "+this.altitude_units;
+        document.getElementById("distance_units").innerHTML = "Distance in "+this.distance_units;
+    }
+
     toggle_elevation_units() {
         this.toggle_setting("altitude_units");
-        document.getElementById("elevation_units").innerHTML = "Elevation in "+this.altitude_units;
+        this.display_units_buttons();
+        this.task.display_task_list();
+    }
+
+    toggle_distance_units() {
+        this.toggle_setting("distance_units");
+        this.display_units_buttons();
+        this.task.display_task_list();
     }
 
     toggle_setting(var_name) {
@@ -136,7 +161,7 @@ class B21TaskPlanner {
             this[var_name] = this.settings_values[var_name][index];
         }
         console.log("toggle index", index);
-        localStorage.setItem('b21_task_planner_'+var_name, this.var_name);
+        localStorage.setItem('b21_task_planner_'+var_name, this[var_name]);
     }
 
     get_setting(var_name) {
@@ -224,7 +249,13 @@ class WP {
 
     display_menu() {
         let form_str = 'Name: <input onchange="change_wp_name(this.value)" value="'+this.get_name() + '"</input>';
-        form_str += '<br/>Alt: <input onchange="change_wp_alt(this.value)" value="' + this.alt_m + '"</input>' + " m";
+        let alt_str = this.alt_m.toFixed(0);
+        let alt_units_str = "m";
+        if (this.planner.altitude_units == "feet") {
+            alt_str = (this.alt_m * this.planner.M_TO_FEET).toFixed(0);
+            alt_units_str = "feet";
+        }
+        form_str += '<br/>Alt: <input onchange="change_wp_alt(this.value)" value="' + alt_str + '"</input> ' + alt_units_str;
         form_str += '<div class="menu">';
         form_str += this.planner.menuitem("Add this WP to task","add_wp_to_task");
         form_str += this.planner.menuitem("Delete this WP","delete_wp");
@@ -318,7 +349,13 @@ class Task {
         if (wp.index == this.index) {
             wp_div.style.backgroundColor = "yellow";
         }
-        wp_div.innerHTML = wp.index + " " + wp.get_name() + " " + wp.alt_m;
+        let alt_str = wp.alt_m.toFixed(0);
+        let alt_units_str = "m";
+        if (this.planner.altitude_units == "feet") {
+            alt_str = (wp.alt_m * this.planner.M_TO_FEET).toFixed(0);
+            alt_units_str = "feet";
+        }
+        wp_div.innerHTML = wp.index + " " + wp.get_name() + " " + alt_str + " " + alt_units_str;
         this.task_el.appendChild(wp_div);
     }
 
