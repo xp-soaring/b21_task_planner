@@ -60,35 +60,54 @@ class B21TaskPlanner {
         this.drop_zone_el.style.display = "block";
         let parent = this;
         this.drop_zone_el.ondragover = (e) => {parent.dragover_handler(e); };
-        this.drop_zone_el.ondrop = (e) => { parent.drop_handler(e); };
+        this.drop_zone_el.ondrop = (e) => { parent.drop_handler(parent, e); };
     }
 
-    drop_handler(ev) {
-      console.log('File(s) dropped');
-      // Prevent default behavior (Prevent file from being opened)
-      ev.preventDefault();
+    drop_handler(parent, ev) {
+        console.log('File(s) dropped');
+        // Prevent default behavior (Prevent file from being opened)
+        ev.preventDefault();
 
-      if (ev.dataTransfer.items) {
-        // Use DataTransferItemList interface to access the file(s)
-        for (var i = 0; i < ev.dataTransfer.items.length; i++) {
-          // If dropped items aren't files, reject them
-          if (ev.dataTransfer.items[i].kind === 'file') {
-            var file = ev.dataTransfer.items[i].getAsFile();
-            console.log('... file[' + i + '].name = ' + file.name);
-          }
+        if (ev.dataTransfer.items) {
+            // Use DataTransferItemList interface to access the file(s)
+            for (var i = 0; i < ev.dataTransfer.items.length; i++) {
+                // If dropped items aren't files, reject them
+                if (ev.dataTransfer.items[i].kind === 'file') {
+                    var file = ev.dataTransfer.items[i].getAsFile();
+                    console.log('DataTransferItemList... file[' + i + '].name = ' + file.name);
+                    let reader = new FileReader();
+                    reader.onload = (e) => {
+                        parent.handle_dropped_task_pln(e.target.result);
+                    }
+                    reader.readAsText(file);
+                }
+            }
+        } else {
+            // Use DataTransfer interface to access the file(s)
+            for (var i = 0; i < ev.dataTransfer.files.length; i++) {
+                console.log('DataTransfer... file[' + i + '].name = ' + ev.dataTransfer.files[i].name);
+                let reader = new FileReader();
+                reader.onload = (e) => {
+                    parent.handle_dropped_task_pln(e.target.result);
+                }
+                reader.readAsText(file);
+            }
         }
-      } else {
-        // Use DataTransfer interface to access the file(s)
-        for (var i = 0; i < ev.dataTransfer.files.length; i++) {
-          console.log('... file[' + i + '].name = ' + ev.dataTransfer.files[i].name);
-        }
-      }
+    }
+
+    handle_dropped_task_pln(file_str) {
+        console.log("handle file");
+        console.log(file_str);
+        const parser = new DOMParser();
+        const dom = parser.parseFromString(file_str, "application/xml");
+        let flight_plan_el = dom.getElementsByTagName("FlightPlan.FlightPlan")[0];
+        let title = dom.getElementsByTagName("Title")[0].childNodes[0].nodeValue;
+        console.log("Loaded flightplan",title);
     }
 
     dragover_handler(ev) {
-      console.log('File(s) in drop zone');
-      // Prevent default behavior (Prevent file from being opened)
-      ev.preventDefault();
+        // Prevent default behavior (Prevent file from being opened)
+        ev.preventDefault();
     }
 
     save_map_coords(center, zoom) {
