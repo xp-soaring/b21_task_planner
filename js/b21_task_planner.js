@@ -43,11 +43,7 @@ class B21TaskPlanner {
 
         this.tiles_outdoor.addTo(this.map);
 
-        // Target's GPS coordinates.
-        const target = L.latLng(52, 0);
-
-        // Set map's center to target with zoom 14.
-        this.map.setView(target, 11);
+        this.load_map_coords();
 
         // Set up the map mouse click callbacks
         this.map.on('click', (e) => {parent.map_left_click(parent, e);} );
@@ -102,8 +98,9 @@ class B21TaskPlanner {
         localStorage.setItem("b21_task_planner_map_coords", move_str);
     }
 
-    load_map_coords(map) {
+    load_map_coords() {
         let move_str = localStorage.getItem("b21_task_planner_map_coords");
+        console.log("load_map_coords", move_str);
         if (move_str == "undefined") {
             return;
         }
@@ -118,7 +115,7 @@ class B21TaskPlanner {
             return;
         }
 
-        map.panTo(new L.latLng(move_obj.lat, move_obj.lng));
+        this.map.setView(new L.latLng(move_obj.lat, move_obj.lng),11);
 
         //DEBUG zoom
     }
@@ -282,9 +279,7 @@ class WP {
             parent.get_alt_m();
         });
         marker.on("click", function(e) {
-            parent.planner.task.index = parent.index;
-            parent.display_menu();
-            parent.planner.task.display_task_list(); // update highlight of current WP
+            parent.wp_click(parent);
         });
         marker.addTo(planner.map);
         this.marker = marker;
@@ -293,6 +288,12 @@ class WP {
         this.latlng = latlng;
         this.alt_m = 123;
         this.task_line = null;
+    }
+
+    wp_click(parent) {
+        parent.planner.task.index = parent.index;
+        parent.display_menu();
+        parent.planner.task.display_task_list(); // update highlight of current WP
     }
 
     get_alt_m() {
@@ -372,6 +373,7 @@ class Task {
         if (wp.index > 0) {
             this.add_line(this.waypoints[wp.index-1],wp);
         }
+        this.redraw();
         this.display_task_list();
         return wp;
     }
@@ -394,9 +396,16 @@ class Task {
     }
 
     redraw() {
-        for (let i=1; i<this.waypoints.length; i++) {
-            this.waypoints[i].task_line.remove(this.planner.map);
-            this.add_line(this.waypoints[i-1], this.waypoints[i]);
+        for (let i=0; i<this.waypoints.length; i++) {
+            if (i==this.index) {
+                this.waypoints[i].marker.setZIndexOffset(1000);
+            } else {
+                this.waypoints[i].marker.setZIndexOffset(0);
+            }
+            if (i>0) {
+                this.waypoints[i].task_line.remove(this.planner.map);
+                this.add_line(this.waypoints[i-1], this.waypoints[i]);
+            }
         }
     }
 
@@ -465,6 +474,7 @@ class Task {
     set_current_wp(index) {
         console.log("Set current WP index",index);
         this.index = index;
+        this.redraw();
         this.current_wp().display_menu();
         this.display_task_list();
     }
