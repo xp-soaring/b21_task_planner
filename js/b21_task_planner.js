@@ -14,6 +14,18 @@ class B21TaskPlanner {
 
         this.display_units_buttons();
 
+        this.init_drop_zone();
+
+        this.init_map();
+
+        // Task object to hold accumulated waypoints
+        this.task = new Task(this);
+    }
+
+    init_map() {
+
+        let parent = this;
+
         // Where you want to render the map.
         const element = document.getElementById('map');
 
@@ -45,14 +57,70 @@ class B21TaskPlanner {
         this.map.on("moveend", () => {
             parent.save_map_coords(parent.map.getCenter(), parent.map.getZoom());
         });
+    }
 
-        // Task object to hold accumulated waypoints
-        this.task = new Task(this);
+    init_drop_zone() {
+        this.drop_zone_el = document.getElementById("drop_zone");
+        this.drop_zone_el.style.display = "block";
+        let parent = this;
+        this.drop_zone_el.ondragover = (e) => {parent.dragover_handler(e); };
+        this.drop_zone_el.ondrop = (e) => { parent.drop_handler(e); };
+    }
+
+    drop_handler(ev) {
+      console.log('File(s) dropped');
+      // Prevent default behavior (Prevent file from being opened)
+      ev.preventDefault();
+
+      if (ev.dataTransfer.items) {
+        // Use DataTransferItemList interface to access the file(s)
+        for (var i = 0; i < ev.dataTransfer.items.length; i++) {
+          // If dropped items aren't files, reject them
+          if (ev.dataTransfer.items[i].kind === 'file') {
+            var file = ev.dataTransfer.items[i].getAsFile();
+            console.log('... file[' + i + '].name = ' + file.name);
+          }
+        }
+      } else {
+        // Use DataTransfer interface to access the file(s)
+        for (var i = 0; i < ev.dataTransfer.files.length; i++) {
+          console.log('... file[' + i + '].name = ' + ev.dataTransfer.files[i].name);
+        }
+      }
+    }
+
+    dragover_handler(ev) {
+      console.log('File(s) in drop zone');
+      // Prevent default behavior (Prevent file from being opened)
+      ev.preventDefault();
     }
 
     save_map_coords(center, zoom) {
         console.log(center.toString(), zoom);
-        localStorage.setItem("b21_task_planner_map_coords", center.lat.toFixed(6)+","+center.lng.toFixed(6)+","+zoom);
+        let move_obj = { lat: center.lat, lng: center.lng, zoom: zoom };
+        let move_str = JSON.stringify(move_obj);
+        localStorage.setItem("b21_task_planner_map_coords", move_str);
+    }
+
+    load_map_coords(map) {
+        let move_str = localStorage.getItem("b21_task_planner_map_coords");
+        if (move_str == "undefined") {
+            return;
+        }
+        let move_obj = {};
+        try {
+            move_obj = JSON.parse(move_str);
+        } catch (e) {
+            console.log("bad b21_task_planner_map_coords localStorage");
+            return;
+        }
+        if (move_obj.lat == null || move_obj.lng == null ) {
+            return;
+        }
+
+        map.panTo(new L.latLng(move_obj.lat, move_obj.lng));
+
+        //DEBUG zoom
     }
 
     map_left_click(parent, e) {
