@@ -55,6 +55,10 @@ class B21TaskPlanner {
         });
     }
 
+// ********************************************************************************************
+// *********  Flight Plan handling                     ****************************************
+// ********************************************************************************************
+
     init_drop_zone() {
         this.drop_zone_el = document.getElementById("drop_zone");
         this.drop_zone_el.style.display = "block";
@@ -97,18 +101,44 @@ class B21TaskPlanner {
 
     handle_dropped_task_pln(file_str) {
         console.log("handle file");
-        console.log(file_str);
+        //console.log(file_str);
         const parser = new DOMParser();
         const dom = parser.parseFromString(file_str, "application/xml");
         let flight_plan_el = dom.getElementsByTagName("FlightPlan.FlightPlan")[0];
         let title = dom.getElementsByTagName("Title")[0].childNodes[0].nodeValue;
+        // ***************************
+        // Departure
+        let departure = {};
+        departure.id = dom.getElementsByTagName("DepartureID")[0].childNodes[0].nodeValue;
+        // ***************************
+        // Destination
+        let destination = {};
+        departure.id = dom.getElementsByTagName("DestinationID")[0].childNodes[0].nodeValue;
+        // ***************************
+        // Waypoints
+        let waypoints = [];
+        let dom_waypoints = dom.getElementsByTagName("ATCWaypoint"); //XMLNodeList
+        for (let i=0; i<dom_waypoints.length; i++) {
+            waypoints.push(new WP(this, 0, null, dom_waypoints[i]));
+            this.task.add_new_wp(null, dom_waypoints[i]);
+        }
+
         console.log("Loaded flightplan",title);
+        console.log(departure.id);
+        for (let i=0; i<waypoints.length; i++) {
+            console.log(waypoints[i].name);
+        }
+        console.log(destination.id);
     }
 
     dragover_handler(ev) {
         // Prevent default behavior (Prevent file from being opened)
         ev.preventDefault();
     }
+
+// ********************************************************************************************
+// *********  Persist map position and scale between sessions      ****************************
+// ********************************************************************************************
 
     save_map_coords(center, zoom) {
         console.log(center.toString(), zoom);
@@ -134,14 +164,16 @@ class B21TaskPlanner {
             return;
         }
 
-        this.map.setView(new L.latLng(move_obj.lat, move_obj.lng),11);
-
-        //DEBUG zoom
+        this.map.setView(new L.latLng(move_obj.lat, move_obj.lng),move_obj.zoom);
     }
+
+// ********************************************************************************************
+// *********  Map click callbacks                      ****************************************
+// ********************************************************************************************
 
     map_left_click(parent, e) {
         this.current_latlng = e.latlng;
-        this.add_wp();
+        this.add_new_wp();
     }
 
     map_right_click(parent, e) {
@@ -163,9 +195,9 @@ class B21TaskPlanner {
         return '<div onclick="b21_task_planner.'+menu_function_name+'()" class="menuitem">'+menu_str+'</div>';
     }
 
-    add_wp() {
+    add_new_wp() {
         console.log("add wp " + this.current_latlng);
-        let wp = this.task.add_wp(this.current_latlng);
+        let wp = this.task.add_new_wp(this.current_latlng);
 
         this.map.closePopup();
 
@@ -200,6 +232,10 @@ class B21TaskPlanner {
         console.log("delete WP", this.task.current_wp().get_name());
         this.task.remove_wp(this.task.index);
     }
+
+// ********************************************************************************************
+// *********  Page buttons                             ****************************************
+// ********************************************************************************************
 
     reset() {
         this.task.reset();
@@ -280,9 +316,17 @@ class B21TaskPlanner {
 // ******************************************************************************
 
 class WP {
-    constructor(planner, index, latlng) {
-        console.log("new WP", latlng);
+    constructor(planner, index=null, latlng=null, dom_wp=null) {
         this.planner = planner; // reference to B21TaskPlanner instance
+        if (dom_wp==null) {
+            this.construct_new(index, latlng);
+        } else {
+            this.construct_from_dom(index, dom_wp);
+        }
+    }
+
+    construct_new(index, latlng, name=null) {
+        console.log("new WP", index, latlng, name);
         let marker = L.marker(latlng,
                               { draggable: true,
                                 autoPan: true
@@ -300,13 +344,29 @@ class WP {
         marker.on("click", function(e) {
             parent.wp_click(parent);
         });
-        marker.addTo(planner.map);
+        marker.addTo(this.planner.map);
         this.marker = marker;
         this.index = index;
-        this.name = null;
+        this.name = name;
         this.latlng = latlng;
         this.alt_m = 123;
         this.task_line = null;
+    }
+
+    construct_from_dom(index, dom_wp) {
+        let name = dom_wp.getAttribute("id");
+        // <WorldPosition>N40° 40' 38.62",W77° 37' 36.71",+000813.00</WorldPosition>
+        let world_position = dom_wp.getElementsByTagName("WorldPosition")[0].childNodes[0].nodeValue;
+        let world_pos_elements = world_position.split(","); // lat, lng, alt
+        let lat_elements = world_pos_elements[0].split(" ");
+        let lat = parseInt(lat_elements[0].slice(1)) + parseFloat(lat_elements[1])/60 + parseFloat(lat_elements[2])/3600;
+        lat = lat_elements[0][0]=="N" ? lat : -1 * lat;
+        let lng_elements = world_pos_elements[1].split(" ");
+        let lng = parseInt(lng_elements[0].slice(1)) + parseFloat(lng_elements[1])/60 + parseFloat(lng_elements[2])/3600;
+        lng = lng_elements[0][0]=="E" ? lng : -1 * lng;
+
+        console.log(world_position);
+        this.construct_new(index,new L.latLng(lat,lng),name);
     }
 
     wp_click(parent) {
@@ -384,10 +444,10 @@ class Task {
         return this.waypoints[this.index];
     }
 
-    add_wp(latlng) {
+    add_new_wp(latlng, dom_wp=null) {
         this.index = this.waypoints.length;
         console.log("task adding wp",this.index);
-        let wp = new WP(this.planner, this.index, latlng);
+        let wp = new WP(this.planner, this.index, latlng, dom_wp);
         this.waypoints.push(wp);
         if (wp.index > 0) {
             this.add_line(this.waypoints[wp.index-1],wp);
@@ -416,6 +476,7 @@ class Task {
 
     redraw() {
         for (let i=0; i<this.waypoints.length; i++) {
+            console.log("redraw",i);
             if (i==this.index) {
                 this.waypoints[i].marker.setZIndexOffset(1000);
             } else {
