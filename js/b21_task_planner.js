@@ -83,6 +83,7 @@ class B21TaskPlanner {
                     reader.onload = (e) => {
                         parent.handle_dropped_task_pln(e.target.result);
                     }
+                    console.log("reader.readAsText",file);
                     reader.readAsText(file);
                 }
             }
@@ -211,7 +212,7 @@ class B21TaskPlanner {
 
     change_wp_name(new_name) {
         console.log("new wp name = ",new_name);
-        this.task.current_wp().name = new_name;
+        this.task.current_wp().set_name(new_name);
         this.task.display_task_list();
     }
 
@@ -250,6 +251,12 @@ class B21TaskPlanner {
         for (let i=0; i<this.task.waypoints.length; i++) {
             this.task.waypoints[i].get_alt_m();
         }
+    }
+
+    reset_map() {
+        this.task.update_bounds();
+        console.log( [[this.task.min_lat, this.task.min_lng],[this.task.max_lat, this.task.max_lng]]);
+        this.map.fitBounds( [[this.task.min_lat, this.task.min_lng],[this.task.max_lat, this.task.max_lng]]);
     }
 
 // ********************************************************************************************
@@ -412,8 +419,8 @@ class WP {
         parent.planner.task.set_current_wp(parent.index);
     }
 
-    get_icon(index) {
-        let icon_str = index.toFixed(0);
+    get_icon() {
+        let icon_str = (this.index.toFixed(0)+"."+this.get_name()).replaceAll(" ","&nbsp;");
         let icon_html = '<div class="wp_icon_html">'+icon_str+"</div>";
 
         let wp_icon = L.divIcon( {
@@ -470,21 +477,26 @@ class WP {
         this.marker.setIcon(icon);
     }
 
+    set_name(name) {
+        this.name = name;
+        this.update_icon();
+    }
+
     display_menu() {
-        let form_str = 'Name: <input onchange="change_wp_name(this.value)" value="'+this.get_name() + '"</input>';
+        let form_str = 'Name: <input onchange="b21_task_planner.change_wp_name(this.value)" value="'+this.get_name() + '"</input>';
         let alt_str = this.alt_m.toFixed(0);
         let alt_units_str = "m";
         if (this.planner.altitude_units == "feet") {
             alt_str = (this.alt_m * this.planner.M_TO_FEET).toFixed(0);
             alt_units_str = "feet";
         }
-        form_str += '<br/>Alt: <input onchange="change_wp_alt(this.value)" value="' + alt_str + '"</input> ' + alt_units_str;
+        form_str += '<br/>Alt: <input onchange="b21_task_planner.change_wp_alt(this.value)" value="' + alt_str + '"</input> ' + alt_units_str;
         form_str += '<div class="menu">';
-        form_str += this.planner.menuitem("Add this WP to task","add_wp_to_task");
         form_str += this.planner.menuitem("Remove this WP from task","remove_wp_from_task");
+        form_str += this.planner.menuitem("Add this WP to task","add_wp_to_task");
         form_str += this.planner.menuitem("Delete this WP from database","delete_wp_from_database");
         form_str += '</div>';
-        var popup = L.popup({ offset: [0,-25]})
+        var popup = L.popup({ offset: [0,0]})
             .setLatLng(this.position)
             .setContent(form_str)
             .openOn(this.planner.map);
@@ -575,8 +587,14 @@ class Task {
 
     // Calculate the SW & NE corners of the task, so map can be zoomed to fit.
     update_bounds() {
+        // task bounds
+        this.min_lat = 90;
+        this.min_lng = 180;
+        this.max_lat = -90;
+        this.max_lng = -180;
         for (let i=0; i<this.waypoints.length; i++) {
             let position = this.waypoints[i].position;
+            console.log("update_bounds",i,position.lat, position.lng);
             if (position.lat<this.min_lat) {
                 this.min_lat = position.lat;
             }
@@ -590,7 +608,7 @@ class Task {
                 this.max_lng = position.lng;
             }
         }
-        console.log("new map bounds ",this.min_lat, this.min_lng, this.max_lng, this.max_lng);
+        console.log("new map bounds ",this.min_lat, this.min_lng, this.max_lat, this.max_lng);
     }
 
     // Add a straight line between wp1 and wp2
@@ -651,7 +669,7 @@ class Task {
                 dist_units_str = "km";
             }
         }
-        wp_div.innerHTML = wp.index + " | " + wp.get_name() + " | " + alt_str + " " + alt_units_str + " | " + dist_str + " " + dist_units_str;
+        wp_div.innerHTML = (wp.index+1) + " | " + wp.get_name() + " | " + alt_str + " " + alt_units_str + " | " + dist_str + " " + dist_units_str;
         this.task_el.appendChild(wp_div);
     }
 
