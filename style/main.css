@@ -106,6 +106,10 @@ body {
     width: 70px;
 }
 
+.wp_runway {
+    width: 50px;
+}
+
 .wp_alt {
     width: 50px;
 }
@@ -120,6 +124,7 @@ body {
 
 #task_list {
     cursor: pointer;
+    font-size: 16px;
 }
 
 .task_list_wp {
