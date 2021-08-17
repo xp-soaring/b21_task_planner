@@ -319,12 +319,16 @@ class B21TaskPlanner {
     toggle_settings() {
         console.log("toggle settings from",this.settings_displayed);
         if (this.settings_displayed) {
-            this.settings_el.style.display = "none";
-            this.settings_displayed = false;
+            this.close_settings();
         } else {
             this.settings_el.style.display = "block";
             this.settings_displayed = true;
         }
+    }
+
+    close_settings() {
+        this.settings_el.style.display = "none";
+        this.settings_displayed = false;
     }
 
     build_settings_html() {
@@ -333,11 +337,23 @@ class B21TaskPlanner {
         }
         let heading_el = document.createElement("div");
         heading_el.id = "settings_heading";
-        heading_el.innerHTML = "Settings";
+
+        let heading_text_el = document.createElement("div");
+        heading_text_el.id = "settings_heading_text";
+        heading_text_el.innerHTML = "Settings";
+        heading_el.appendChild(heading_text_el);
+
+        let close_el = document.createElement("button");
+        close_el.addEventListener("click", (e) => this.close_settings());
+        close_el.innerHTML = "Close Settings";
+        heading_el.appendChild(close_el);
+
         this.settings_el.appendChild(heading_el);
 
         for (const var_name in this.settings_values) {
-            this.build_setting_html(var_name);
+            if (typeof this.settings_values[var_name]=="object") {
+                this.build_setting_html(var_name);
+            }
         }
 
     }
@@ -348,7 +364,7 @@ class B21TaskPlanner {
         setting_el.className = "setting";
         let setting_name_el = document.createElement("div");
         setting_name_el.className = "setting_name";
-        setting_name_el.innerHTML = "Name: "+var_name;
+        setting_name_el.innerHTML = this.var_name_to_title(var_name);
         setting_el.appendChild(setting_name_el);
         if (typeof this.settings_values[var_name]=="object") {
             let setting_options_el = document.createElement("div");
@@ -359,10 +375,15 @@ class B21TaskPlanner {
                 setting_option_el.id = "setting_"+var_name+"_"+option_name;
                 setting_option_el.className = "setting_option";
                 setting_option_el.addEventListener("click", (e) => {
+                    parent.unset_setting(var_name);
+                    parent.select(e.target);
                     parent.set_setting(var_name, option_name);
                     parent.task.display_task_list();
                 });
                 setting_option_el.innerHTML = "Option: "+option_name;
+                if (this.settings[var_name]==option_name) {
+                    this.select(setting_option_el);
+                }
                 setting_options_el.appendChild(setting_option_el);
             }
             setting_el.appendChild(setting_options_el);
@@ -370,8 +391,13 @@ class B21TaskPlanner {
         this.settings_el.appendChild(setting_el);
     }
 
-    update_settings() {
-
+    var_name_to_title(var_name) {
+        let parts = var_name.split("_");
+        let title = "";
+        for (let i=0; i<parts.length; i++) {
+            title += (i>0 ? " " : "") + parts[i][0].toUpperCase()+parts[i].slice(1);
+        }
+        return title;
     }
 
     set_altitude_units_m() {
@@ -382,6 +408,22 @@ class B21TaskPlanner {
     set_altitude_units_feet() {
         this.set_setting("altitude_units","feet");
         this.task.display_task_list();
+    }
+
+    select(el) {
+        el.style.backgroundColor = "lightgreen";
+    }
+
+    unselect(el) {
+        el.style.backgroundColor = "white";
+    }
+
+    unset_setting(var_name) {
+        for (let i=0; i<this.settings_values[var_name].length; i++) {
+            let option_name = this.settings_values[var_name][i];
+            let id = "setting_"+var_name+"_"+option_name;
+            this.unselect(document.getElementById(id));
+        }
     }
 
     set_setting(var_name, value) {
@@ -449,9 +491,9 @@ class WP {
     construct_new(index, position, name=null) {
         console.log("new WP", index, position, name);
 
-        //DEBUG highlight current waypoint on map
         //DEBUG highlight start/finish waypoints
         //DEBUG offset waypoints according to bisector
+        //DEBUG enter runway for departure airport
 
         this.name = name;
         this.position = position;
@@ -478,7 +520,9 @@ class WP {
         let lng_elements = world_pos_elements[1].split(" ");
         let lng = parseInt(lng_elements[0].slice(1)) + parseFloat(lng_elements[1])/60 + parseFloat(lng_elements[2])/3600;
         lng = lng_elements[0][0]=="E" ? lng : -1 * lng;
-
+        //DEBUG load elevation from flight plan
+        //DEBUG load departure and arrival airports from flight plan
+        //BDEBUG load runway from flight plan
         console.log(world_position);
         this.construct_new(index,new L.latLng(lat,lng),name);
     }
@@ -591,16 +635,16 @@ class WP {
     }
 
     display_menu() {
-        let form_str = 'Name: <input onchange="b21_task_planner.change_wp_name(this.value)" value="'+this.get_name() + '"</input>';
+        let form_str = 'Name: <input onchange="b21_task_planner.change_wp_name(this.value)" value="'+this.get_name() + '"</input><br/>';
 
         if (this.planner.settings.soaring_task_option==1) {
             let start = this.index == this.planner.task.start_index;
-            form_str += '<br/>Start: <input onclick="b21_task_planner.click_start()" type="checkbox"'+(start ? " checked":"")+'/>';
+            form_str += 'Start: <input onclick="b21_task_planner.click_start()" type="checkbox"'+(start ? " checked":"")+'/>';
             let finish = this.index == this.planner.task.finish_index;
-            form_str += ' Finish: <input  onclick="b21_task_planner.click_finish()" type="checkbox"'+(finish ? " checked":"")+'/>';
+            form_str += ' Finish: <input  onclick="b21_task_planner.click_finish()" type="checkbox"'+(finish ? " checked":"")+'/> ';
         }
 
-        form_str += '<br/>ICAO: <input class="wp_icao" onchange="b21_task_planner.change_wp_icao(this.value)" value="' + this.get_icao() + '"</input> ';
+        form_str += 'ICAO: <input class="wp_icao" onchange="b21_task_planner.change_wp_icao(this.value)" value="' + this.get_icao() + '"</input> ';
 
         let alt_str = this.alt_m.toFixed(0);
         let alt_units_str = "m";
@@ -793,7 +837,7 @@ class Task {
         if (wp.index>0) {
             if (this.planner.settings.distance_units == "miles") {
                 dist_str = (wp.leg_distance_m * this.planner.M_TO_MILES).toFixed(1);
-                dist_units_str = "feet";
+                dist_units_str = "miles";
             } else {
                 dist_str = (wp.leg_distance_m / 1000).toFixed(1);
                 dist_units_str = "km";

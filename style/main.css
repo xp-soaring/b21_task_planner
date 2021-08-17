@@ -102,6 +102,10 @@ body {
     background-color: rgba(255,255,255,0.6);
 }
 
+.wp_icao {
+    width: 70px;
+}
+
 .wp_alt {
     width: 50px;
 }
@@ -141,12 +145,20 @@ body {
     font-size: 32px;
 }
 
+#settings_heading_text {
+    display: inline-block;
+}
+
+#settings_heading button {
+    vertical-align: middle;
+    margin-left: 30px;
+}
+
 .setting {
     border-bottom: 2px solid black;
 }
 
 .setting_name {
-    background-color: pink;
     width: 45%;
     font-size: 28px;
     text-align: right;
@@ -157,7 +169,7 @@ body {
     text-align: right;
 }
 .setting_option {
-    background-color: lightblue;
+    background-color: white;
     text-align: right;
     margin-left: 50%;
 }
