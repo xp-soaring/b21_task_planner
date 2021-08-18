@@ -12,7 +12,7 @@
         <DestinationLLA>N47° 33' 52.57",E12° 7' 37.96",+001588.00</DestinationLLA>
         <Descr>LOWZ, LOIK</Descr>
         <DepartureName>Zell Am See2</DepartureName>
-        <DestinationName>*Langkampfen Airport</DestinationName>
+        <DestinationName>Langkampfen Airport</DestinationName>
         <AppVersion>
             <AppVersionMajor>11</AppVersionMajor>
             <AppVersionBuild>282174</AppVersionBuild>
@@ -25,19 +25,19 @@
                 <ICAOIdent>LOWZ</ICAOIdent>
             </ICAO>
         </ATCWaypoint>
-        <ATCWaypoint id="*Start+6230">
+        <ATCWaypoint id="*Start+6230|6000">
             <ATCWaypointType>User</ATCWaypointType>
             <WorldPosition>N47° 19' 29.49",E12° 44' 11.32",+000000.00</WorldPosition>
         </ATCWaypoint>
-        <ATCWaypoint id="WP1+6170">
+        <ATCWaypoint id="WP1+6170|6000/1000x500">
             <ATCWaypointType>User</ATCWaypointType>
             <WorldPosition>N47° 19' 11.07",E12° 25' 54.40",+000000.00</WorldPosition>
         </ATCWaypoint>
-        <ATCWaypoint id="WP2+4070">
+        <ATCWaypoint id="WP2+4070x1000">
             <ATCWaypointType>User</ATCWaypointType>
             <WorldPosition>N47° 32' 40.40",E12° 24' 35.92",+000000.00</WorldPosition>
         </ATCWaypoint>
-        <ATCWaypoint id="LOIK">
+        <ATCWaypoint id="*LOIK+/2000">
             <ATCWaypointType>Airport</ATCWaypointType>
             <WorldPosition>N47° 33' 52.57",E12° 7' 37.96",+001588.00</WorldPosition>
             <ICAO>
