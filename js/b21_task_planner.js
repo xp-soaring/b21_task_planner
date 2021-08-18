@@ -530,6 +530,8 @@ class WP {
         this.radius_m = null;
         this.max_alt_m = null;
         this.min_alt_m = null;
+        // turnpoint sector (Leaflet circle)
+        this.sector = null;
 
         // Values from task
         // Note each 'leg_' value is TO this waypoint
@@ -886,17 +888,37 @@ class Task {
         wp2.task_line.addTo(this.planner.map);
     }
 
+    add_sector(wp) {
+        wp.sector = L.circle(wp.position, { radius: wp.radius_m, color: 'red', weight: 1 });
+        wp.sector.addTo(this.planner.map);
+    }
+
     redraw() {
         for (let i=0; i<this.waypoints.length; i++) {
+            let wp = this.waypoints[i];
+            // Set current WP marker to foreground
             if (i==this.index) {
-                this.waypoints[i].marker.setZIndexOffset(1000);
+                wp.marker.setZIndexOffset(1000);
             } else {
-                this.waypoints[i].marker.setZIndexOffset(0);
+                wp.marker.setZIndexOffset(0);
+            }
+            // Draw task line
+            if (wp.task_line != null) {
+                wp.task_line.remove(this.planner.map);
+                wp.task_line = null;
             }
             if (i>0) {
-                this.waypoints[i].task_line.remove(this.planner.map);
                 this.add_line(this.waypoints[i-1], this.waypoints[i]);
             }
+            // Draw WP circle
+            if (wp.sector != null) {
+                wp.sector.remove(this.planner.map);
+                wp.sector = null;
+            }
+            if (wp.radius_m != null && wp.radius_m > 0) {
+                this.add_sector(wp);
+            }
+
         }
     }
 
