@@ -246,10 +246,10 @@ class B21TaskPlanner {
         console.log("delete WP from database", this.task.current_wp().get_name());
     }
 
-    click_soaring_task_option(el) {
-        console.log("click_soaring_task_option", el.checked);
+    click_soaring_task(el) {
+        console.log("click_soaring_task", el.checked);
         let option = el.checked;
-        this.set_setting("soaring_task_option", option ? 1 : 0);
+        this.set_setting("soaring_task", option ? 1 : 0);
     }
 
     click_start() {
@@ -259,16 +259,22 @@ class B21TaskPlanner {
             this.task.finish_index = null;
         }
         this.task.update_waypoint_icons();
+        wp.display_menu();
+        this.task.redraw();
         this.task.display_task_list();
     }
 
     click_finish() {
         let wp = this.task.current_wp();
         this.task.finish_index = wp.index;
+        console.log("Setting finish_index to",this.task.finish_index);
+        // Remove start if it is AFTER this finish
         if (this.task.start_index != null && this.task.start_index >= wp.index) {
             this.task.start_index = null;
         }
         this.task.update_waypoint_icons();
+        wp.display_menu();
+        this.task.redraw();
         this.task.display_task_list();
     }
 
@@ -308,7 +314,7 @@ class B21TaskPlanner {
         this.settings = {};
 
         this.settings_values = {
-            soaring_task_option: 1,                // 1 or 0 = true/false whether to embed the B21/ALBATROSS soaring params
+            soaring_task: 1,                // 1 or 0 = true/false whether to embed the B21/ALBATROSS soaring params
             altitude_units: ["feet","m"],
             distance_units: ["km", "miles" ],
             wp_radius_units: ["m", "feet"],
@@ -445,7 +451,6 @@ class B21TaskPlanner {
         let value = window.localStorage.getItem('b21_task_planner_'+var_name);
         let error = true;
         if (typeof this.settings_values[var_name] == "object") {
-            console.log("get setting string", var_name);
             for (let i=0; i<this.settings_values[var_name].length; i++) {
                 if (value == this.settings_values[var_name][i]) {
                     this.settings[var_name] = value;
@@ -457,22 +462,20 @@ class B21TaskPlanner {
                 this.settings[var_name] = this.settings_values[var_name][0];
             }
         } else {
-            console.log("get setting value", var_name);
             this.settings[var_name] = parseFloat(value);
             if (isNaN(this.settings[var_name])) {
-                console.log("get_setting default", var_name);
                 this.settings[var_name] = this.settings_values[var_name];
             }
         }
-        console.log("get_setting",this.settings[var_name]);
+        console.log("get_setting",var_name,this.settings[var_name]);
     }
 
     load_settings() {
         for (const var_name in this.settings_values) {
             this.get_setting(var_name);
         }
-        if (this.settings.soaring_task_option==0) {
-            document.getElementById("soaring_task_option_checkbox").checked = false;
+        if (this.settings.soaring_task==0) {
+            document.getElementById("soaring_task_checkbox").checked = false;
         }
         console.log("load_settings",this.settings.altitude_units, this.settings.distance_units);
     }
@@ -527,6 +530,13 @@ class WP {
 
     construct_from_dom(index, dom_wp) {
         let name = dom_wp.getAttribute("id");
+        console.log("New WP from dom:",name);
+        if (this.planner.settings.soaring_task==1 &&
+            (name=="TIMECRUIS" || name=="TIMECLIMB" || name=="TIMEVERT") ){
+                // Skip this waypoint, & tell the caller (Task) via an exception
+                throw "SKIP_WAYPOINT";
+        }
+        console.log("New WP from dom OK:",name);
         // <WorldPosition>N40° 40' 38.62",W77° 37' 36.71",+000813.00</WorldPosition>
         let world_position = dom_wp.getElementsByTagName("WorldPosition")[0].childNodes[0].nodeValue;
         let world_pos_elements = world_position.split(","); // lat, lng, alt
@@ -677,7 +687,7 @@ class WP {
         this.marker.setIcon(icon);
     }
 
-    //DEBUG highlight ICAO entry for 1st and last WP
+    //DEBUG highlight required ICAO entry for 1st and last WP
     display_menu() {
         let form_str = 'Name: <input onchange="b21_task_planner.change_wp_name(this.value)" value="'+this.get_name() + '"</input>';
 
@@ -694,7 +704,7 @@ class WP {
 
         form_str += '<br/>Elevation: <input class="wp_alt" onchange="b21_task_planner.change_wp_alt(this.value)" value="' + alt_str + '"</input> ' + alt_units_str;
 
-        if (this.planner.settings.soaring_task_option==1) {
+        if (this.planner.settings.soaring_task==1) {
             let start = this.index == this.planner.task.start_index;
             form_str += '<br/>Start: <input onclick="b21_task_planner.click_start()" type="checkbox"'+(start ? " checked":"")+'/>';
             let finish = this.index == this.planner.task.finish_index;
@@ -820,9 +830,17 @@ class Task {
 
     add_new_wp(position, dom_wp=null) {
         //this.index = this.waypoints.length;
-        this.index = this.index==null ? 0 : this.index + 1;
+        let wp_index = this.index==null ? 0 : this.index + 1;
         console.log("task adding wp with index",this.index);
-        let wp = new WP(this.planner, this.index, position, dom_wp);
+        let wp;
+        try {
+            // An exception will be generated if this WP should be ignored, e.g. TIMECRUIS
+            wp = new WP(this.planner, this.index, position, dom_wp);
+        } catch (e) {
+            console.log("add_new_wp",e);
+            return;
+        }
+        this.index = wp_index;
         //this.waypoints.push(wp);
         //INSERT this wp into waypoints at index
         this.waypoints.splice(this.index,0,wp);
@@ -981,7 +999,32 @@ class Task {
 
     add_sector(wp) {
             this.remove_sector(wp);
-            wp.sector = L.circle(wp.position, { radius: wp.radius_m, color: 'red', weight: 1 });
+            if (wp.index==this.start_index) {
+                // Sector = START LINE
+                console.log("add_sector START",wp.radius_m);
+                let radius_m = wp.radius_m==null ? 2500 : wp.radius_m;
+                let direction_deg = 0;
+                if (wp.index < this.waypoints.length - 1) {
+                    direction_deg = (this.waypoints[wp.index+1].leg_bearing_deg + 180) % 360;
+                }
+                wp.sector = L.semiCircle(wp.position,
+                    {radius: radius_m, color: 'red'})
+                    .setDirection(direction_deg,180);
+            } else if (wp.index==this.finish_index) {
+                // Sector = FINISH LINE
+                console.log("add_sector FINISH",wp.radius_m);
+                let radius_m = wp.radius_m==null ? 1000 : wp.radius_m;
+                let direction_deg = 0;
+                if (wp.index > 0) {
+                    direction_deg = wp.leg_bearing_deg;
+                }
+                wp.sector = L.semiCircle(wp.position,
+                    {radius: radius_m, color: 'red'})
+                    .setDirection(direction_deg,180);
+            } else {
+                // Sector = WAYPOINT
+                wp.sector = L.circle(wp.position, { radius: wp.radius_m, color: 'red', weight: 1 });
+            }
             wp.sector.addTo(this.planner.map);
     }
 
@@ -993,6 +1036,7 @@ class Task {
     }
 
     redraw() {
+        console.log("Task.redraw()");
         for (let i=0; i<this.waypoints.length; i++) {
             let wp = this.waypoints[i];
             // Set current WP marker to foreground
@@ -1008,11 +1052,11 @@ class Task {
             if (i>0) {
                 this.add_line(this.waypoints[i-1], this.waypoints[i]);
             }
-            // Draw WP circle
+            // Draw WP circle, start, finish lines
             if (wp.sector != null) {
                 this.remove_sector(wp);
             }
-            if (wp.radius_m != null && wp.radius_m > 0) {
+            if (wp.radius_m != null || wp.index == this.start_index || wp.index == this.finish_index) {
                 this.add_sector(wp);
             }
 

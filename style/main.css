@@ -54,7 +54,7 @@ body {
 
 #drop_zone {
     width: 80%;
-    height: 25%;
+    min-height: 25%;
     border-radius: 20px;
     border: 2px dashed gray;
     border-color: gray;
