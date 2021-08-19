@@ -290,6 +290,14 @@ class B21TaskPlanner {
     //DEBUG implement flightplan download
     download() {
         console.log("download()");
+        let fp;
+        try {
+            fp = new FlightPlan(this.task);
+        } catch (e) {
+            alert(e);
+            return;
+        }
+        console.log(fp.get_text());
     }
 
     update_elevations() {
@@ -765,7 +773,7 @@ class WP {
     toString() {
         return this.name;
     }
-}
+} // end WP class
 
 // ******************************************************************************
 // ***********   Task class                **************************************
@@ -1233,4 +1241,187 @@ class Task {
         str += "]";
         return str;
     }
-}
+} // end Task class
+
+// ******************************************************************************
+// ***********   FlightPlan class          **************************************
+// ******************************************************************************
+
+class FlightPlan {
+
+    constructor(task) {
+
+        this.task = task;
+
+        this.check();
+
+        let header_text = this.get_header_text();
+        let wp_text = "";
+        for (let i=0; i<task.waypoints.length; i++) {
+            wp_text += this.get_wp_text(i);
+        }
+        let footer_text = this.get_footer_text();
+        this.text = header_text + wp_text + footer_text;
+    }
+
+    check() {
+        if (this.task==null) {
+            throw "Cannot create FlightPlan with no task";
+        }
+
+        if (this.task.waypoints.length<2) {
+            throw "Cannot create FlightPlan with less than 2 waypoints";
+        }
+
+        if (this.task.waypoints[0].icao==null || this.task.waypoints[this.task.waypoints.length-1].icao==null) {
+            throw "Cannot create Flightplan unless first and last waypoints have ICAO";
+        }
+    }
+
+    get_text() {
+        return this.text;
+    }
+
+    get_header_text() {
+        let header_text = this.get_header_template();
+        let first_wp = this.task.waypoints[0];
+        let last_wp = this.task.waypoints[this.task.waypoints.length-1];
+        let title = first_wp.get_name() + " to " + last_wp.get_name();
+        header_text = header_text.replace("#TITLE#", title);
+        header_text = header_text.replace("#DESCR#", title);
+
+        header_text = header_text.replace("#DEPARTURE_ID#", first_wp.icao);
+        header_text = header_text.replace("#DEPARTURE_LLA#", this.get_world_position(first_wp));
+        header_text = header_text.replace("#DEPARTURE_POSITION#", first_wp.runway==null ? "" : first_wp.runway);
+        header_text = header_text.replace("#DEPARTURE_NAME#", first_wp.get_name());
+
+        header_text = header_text.replace("#DESTINATION_ID#", last_wp.icao);
+        header_text = header_text.replace("#DESTINATION_LLA#", this.get_world_position(last_wp));
+        header_text = header_text.replace("#DESTINATION_NAME#", last_wp.get_name());
+
+        return header_text;
+    }
+
+    get_wp_text(index) {
+        let wp = this.task.waypoints[index];
+        let wp_text = "";
+        if (wp.icao==null) {
+            let wp_template = this.get_wp_user_template();
+            wp_text = wp_template.replace("#ATCWAYPOINT_ID#",wp.get_name());
+            wp_text = wp_text.replace("#WORLD_POSITION#",this.get_world_position(wp));
+        } else {
+            let wp_template = this.get_wp_airport_template();
+            wp_text = wp_template.replace("#ATCWAYPOINT_ID#",wp.get_name());
+            wp_text = wp_text.replace("#ICAO_IDENT#", wp.icao);
+            wp_text = wp_text.replace("#WORLD_POSITION#",this.get_world_position(wp));
+            wp_text = wp_text.replace("#RUNWAY_NUMBER_FP#", wp.runway==null ? "" : wp.runway);
+        }
+        return wp_text;
+    }
+
+    get_footer_text() {
+        let footer_text = this.get_footer_template();
+        return footer_text;
+    }
+
+    get_world_position(wp) {
+        let position = wp.position;
+        let alt_m = wp.alt_m;
+
+        // e.g. `N51° 33' 50.34",E0° 21' 17.76",+000019.18`;
+        let world_position = "";
+        let NS = position.lat >= 0 ? "N" : "S";
+        world_position += NS;
+        let lat_deg = Math.trunc(Math.abs(position.lat));
+        world_position += lat_deg + "° ";
+        let lat_frac = Math.abs(position.lat) - Math.abs(lat_deg);
+        let lat_mins = Math.trunc(lat_frac * 60);
+        world_position += lat_mins +"' ";
+        let lat_secs = ((lat_frac * 60 - lat_mins) * 60).toFixed(2);
+        world_position += lat_secs + '",';
+
+        let EW = position.lng >= 0 ? "E" : "W";
+        world_position += EW;
+        let lng_deg = Math.trunc(Math.abs(position.lng));
+        world_position += lng_deg + "° ";
+        let lng_frac = Math.abs(position.lng) - Math.abs(lng_deg);
+        let lng_mins = Math.trunc(lng_frac * 60);
+        world_position += lng_mins +"' ";
+        let lng_secs = ((lng_frac * 60 - lng_mins) * 60).toFixed(2);
+        world_position += lng_secs + '",';
+
+        let alt_feet = alt_m * this.task.planner.M_TO_FEET;
+        let alt_str = (alt_feet>0 ? "+" : "-")+("000000"+alt_feet.toFixed(2)).slice(-9);
+        world_position += alt_str;
+
+        return world_position;
+    }
+
+    get_header_template() {
+        return `<?xml version="1.0" encoding="UTF-8"?>
+
+<SimBase.Document Type="AceXML" version="1,0">
+    <Descr>AceXML Document</Descr>
+    <FlightPlan.FlightPlan>
+        <Title>#TITLE#</Title>
+        <FPType>VFR</FPType>
+        <CruisingAlt>1500.000</CruisingAlt>
+        <DepartureID>#DEPARTURE_ID#</DepartureID>
+        <DepartureLLA>#DEPARTURE_LLA#</DepartureLLA>
+        <DestinationID>#DESTINATION_ID#</DestinationID>
+        <DestinationLLA>#DESTINATION_LLA#</DestinationLLA>
+        <Descr>#DESCR#</Descr>
+        <DeparturePosition>#DEPARTURE_POSITION#</DeparturePosition>
+        <DepartureName>#DEPARTURE_NAME#</DepartureName>
+        <DestinationName>#DESTINATION_NAME#</DestinationName>
+        <AppVersion>
+            <AppVersionMajor>11</AppVersionMajor>
+            <AppVersionBuild>282174</AppVersionBuild>
+        </AppVersion>
+`;
+    }
+
+    get_wp_airport_template() {
+        return `
+        <ATCWaypoint id="#ATCWAYPOINT_ID#">
+            <ATCWaypointType>Airport</ATCWaypointType>
+            <WorldPosition>#WORLD_POSITION#</WorldPosition>
+            <RunwayNumberFP>#RUNWAY_NUMBER_FP#</RunwayNumberFP>
+            <SpeedMaxFP>-1</SpeedMaxFP>
+            <ICAO>
+                <ICAOIdent>#ICAO_IDENT#</ICAOIdent>
+            </ICAO>
+        </ATCWaypoint>
+`;
+    }
+
+    get_wp_user_template() {
+        return `
+        <ATCWaypoint id="#ATCWAYPOINT_ID#">
+            <ATCWaypointType>User</ATCWaypointType>
+            <WorldPosition>#WORLD_POSITION#</WorldPosition>
+            <SpeedMaxFP>-1</SpeedMaxFP>
+        </ATCWaypoint>
+`;
+    }
+
+    get_wp_intersection_template() {
+        return `
+        <ATCWaypoint id="#ATCWAYPOINT_ID#">
+            <ATCWaypointType>Intersection</ATCWaypointType>
+            <WorldPosition>#WORLD_POSITION#</WorldPosition>
+            <SpeedMaxFP>-1</SpeedMaxFP>
+            <ICAO>
+                <ICAOIdent>#ICAO_IDENT#</ICAOIdent>
+            </ICAO>
+        </ATCWaypoint>
+`;
+    }
+
+    get_footer_template() {
+        return `
+    </FlightPlan.FlightPlan>
+</SimBase.Document>
+`;
+    }
+} // end FlightPlan class
