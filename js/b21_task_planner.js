@@ -190,6 +190,12 @@ class B21TaskPlanner {
         this.task.duplicate_current_wp();
     }
 
+    // User has clicked on WP menu (Update waypoint elevation)
+    update_wp_elevation() {
+        console.log("User click Update WP elevation");
+        this.task.current_wp().request_alt_m();
+    }
+
     add_airport() {
         console.log("add airport" + this.current_latlng);
     }
@@ -213,7 +219,9 @@ class B21TaskPlanner {
 
     change_wp_alt(new_alt) {
         console.log("new wp alt = ",new_alt);
-        this.task.current_wp().alt_m = parseFloat(new_alt) / (this.settings.altitude_units=="m" ? 1 : this.M_TO_FEET);
+        let wp = this.task.current_wp();
+        wp.alt_m = parseFloat(new_alt) / (this.settings.altitude_units=="m" ? 1 : this.M_TO_FEET);
+        wp.alt_m_updated = true;
         this.task.display_task_list();
     }
 
@@ -252,11 +260,15 @@ class B21TaskPlanner {
         this.set_setting("soaring_task", option ? 1 : 0);
     }
 
-    click_start() {
+    click_start(e) {
         let wp = this.task.current_wp();
-        this.task.start_index = wp.index;
-        if (this.task.finish_index != null && this.task.finish_index <= wp.index) {
-            this.task.finish_index = null;
+        if (e.checked) {
+            this.task.start_index = wp.index;
+            if (this.task.finish_index != null && this.task.finish_index <= wp.index) {
+                this.task.finish_index = null;
+            }
+        } else {
+            this.task.start_index = null;
         }
         this.task.update_waypoint_icons();
         wp.display_menu();
@@ -264,13 +276,17 @@ class B21TaskPlanner {
         this.task.display_task_list();
     }
 
-    click_finish() {
+    click_finish(e) {
         let wp = this.task.current_wp();
-        this.task.finish_index = wp.index;
-        console.log("Setting finish_index to",this.task.finish_index);
-        // Remove start if it is AFTER this finish
-        if (this.task.start_index != null && this.task.start_index >= wp.index) {
-            this.task.start_index = null;
+        if (e.checked) {
+            this.task.finish_index = wp.index;
+            console.log("Setting finish_index to",this.task.finish_index);
+            // Remove start if it is AFTER this finish
+            if (this.task.start_index != null && this.task.start_index >= wp.index) {
+                this.task.start_index = null;
+            }
+        } else {
+            this.task.finish_index = null;
         }
         this.task.update_waypoint_icons();
         wp.display_menu();
@@ -290,14 +306,12 @@ class B21TaskPlanner {
     //DEBUG implement flightplan download
     download() {
         console.log("download()");
-        let fp;
         try {
-            fp = new FlightPlan(this.task);
+            this.task.save_flightplan();
         } catch (e) {
             alert(e);
             return;
         }
-        console.log(fp.get_text());
     }
 
     update_elevations() {
@@ -521,6 +535,7 @@ class WP {
         this.icao = null;
         this.runway = null;
         this.alt_m = 0;
+        this.alt_m_updated = false; // true is elevation has been updated
         this.radius_m = null;
         this.max_alt_m = null;
         this.min_alt_m = null;
@@ -569,7 +584,10 @@ class WP {
             this.icao = icao_codes[0].childNodes[0].nodeValue;
         }
         if (runways.length>0) {
-            this.runway = runways[0].childNodes[0].nodeValue;
+            let runway_nodes = runways[0].childNodes;
+            if (runway_nodes.length>0) {
+                this.runway = runways[0].childNodes[0].nodeValue;
+            }
         }
     }
 
@@ -633,6 +651,7 @@ class WP {
         }).then( results => {
             console.log("open-elevation.com:", results["results"][0]["elevation"]);
             this.alt_m = results["results"][0]["elevation"];
+            this.alt_m_updated = true;
             this.display_menu();
             this.planner.task.display_task_list();
         }).catch(error => {
@@ -714,9 +733,9 @@ class WP {
 
         if (this.planner.settings.soaring_task==1) {
             let start = this.index == this.planner.task.start_index;
-            form_str += '<br/>Start: <input onclick="b21_task_planner.click_start()" type="checkbox"'+(start ? " checked":"")+'/>';
+            form_str += '<br/>Start: <input onclick="b21_task_planner.click_start(this)" type="checkbox"'+(start ? " checked":"")+'/>';
             let finish = this.index == this.planner.task.finish_index;
-            form_str += ' Finish: <input  onclick="b21_task_planner.click_finish()" type="checkbox"'+(finish ? " checked":"")+'/> ';
+            form_str += ' Finish: <input  onclick="b21_task_planner.click_finish(this)" type="checkbox"'+(finish ? " checked":"")+'/> ';
             let radius_units_str = "m";
             if (this.planner.settings.wp_radius_units=="feet") {
                 radius_units_str = "feet";
@@ -755,7 +774,7 @@ class WP {
         form_str += '<div class="menu">';
         form_str += this.planner.menuitem("Remove this WP from task","remove_wp_from_task");
         form_str += this.planner.menuitem("Add duplicate of this WP to task","duplicate_wp_to_task");
-        form_str += this.planner.menuitem("Delete this WP from database","delete_wp_from_database");
+        form_str += this.planner.menuitem("Update this waypoint elevation","update_wp_elevation");
         form_str += '</div>';
         var popup = L.popup({ offset: [0,0]})
             .setLatLng(this.position)
@@ -822,6 +841,23 @@ class Task {
         }
     }
 
+    save_flightplan() {
+        let fp = new FlightPlan(this);
+        let filename = fp.get_title()+".pln";
+        let text = fp.get_text();
+
+        let element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        element.setAttribute('download', filename);
+
+        element.style.display = 'none';
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+    }
+
     current_wp() {
         return this.waypoints[this.index];
     }
@@ -839,13 +875,13 @@ class Task {
     add_new_wp(position, dom_wp=null) {
         //this.index = this.waypoints.length;
         let wp_index = this.index==null ? 0 : this.index + 1;
-        console.log("task adding wp with index",this.index);
+        console.log(">>>>>>>task adding wp with index",this.index);
         let wp;
         try {
             // An exception will be generated if this WP should be ignored, e.g. TIMECRUIS
-            wp = new WP(this.planner, this.index, position, dom_wp);
+            wp = new WP(this.planner, wp_index, position, dom_wp);
         } catch (e) {
-            console.log("add_new_wp",e);
+            console.log("add_new_wp skipping:",e);
             return;
         }
         this.index = wp_index;
@@ -877,10 +913,10 @@ class Task {
         return wp;
     }
 
-    // Parse soaring-encoded WP name, e.g. *Mifflin+813|6000/1000x500 => Mifflin alt 613ft, max_alt=6000ft, min_alt=1000ft, radius=500m
+    // Parse soaring-encoded WP name, e.g. *Mifflin+813|6000-1000x500 => Mifflin alt 613ft, max_alt=6000ft, min_alt=1000ft, radius=500m
     // The "x" (radius) must come after either "+" or "|", so +813x500 is ok.
     decode_wp_name(wp) {
-        console.log("parsing", wp.name);
+        console.log("decoding", wp.index, wp.name);
         if (wp.name==null) {
             return;
         }
@@ -903,6 +939,7 @@ class Task {
             let alt_feet = parseFloat(wp_extra);
             if (!isNaN(alt_feet)) {
                 wp.alt_m = alt_feet / this.planner.M_TO_FEET;
+                wp.alt_m_updated = true;
             }
         }
         let wp_bar = wp.name.split("|");
@@ -915,7 +952,7 @@ class Task {
                 wp.max_alt_m = max_alt_feet / this.planner.M_TO_FEET;
             }
         }
-        let wp_slash = wp_extra.split("/");
+        let wp_slash = wp_extra.split("-");
         if (wp_slash.length>1) {
             let min_alt_feet = parseFloat(wp_slash[1]);
             if (!isNaN(min_alt_feet)) {
@@ -935,6 +972,40 @@ class Task {
         }
         // Trim wp.name to shortest before "+" or "|"
         wp.name = wp.name.split("+")[0].split("|")[0];
+    }
+
+    // Return WP name with appended soaring parameters e.g. *Mifflin+813|5000-1000x1000
+    // *=start/finish, +=elevation(feet), |=max_alt(feet), -=min_alt(feet), x=radius(meters)
+    get_encoded_name(wp) {
+        let start = "";
+        if (wp.index==this.start_index || wp.index==this.finish_index) {
+            start = "*";
+        }
+        let encoded_name = start + wp.get_name();
+        let extra = false;
+        if (wp.alt_m_updated && wp.icao==null) {
+            extra = true;
+            encoded_name += "+"+(wp.alt_m * this.planner.M_TO_FEET).toFixed(0);
+        }
+        if (wp.max_alt_m!=null) {
+            extra = true;
+            encoded_name += "|"+(wp.max_alt_m * this.planner.M_TO_FEET).toFixed(0);
+        }
+        if (wp.min_alt_m!=null) {
+            if (!extra) {
+                encoded_name += "|";
+                extra = true;
+            }
+            encoded_name += "-"+(wp.min_alt_m * this.planner.M_TO_FEET).toFixed(0);
+        }
+        if (wp.radius_m!=null) {
+            if (!extra) {
+                encoded_name += "|";
+                extra = true;
+            }
+            encoded_name += "x"+wp.radius_m.toFixed(0);
+        }
+        return encoded_name;
     }
 
     // Update the .leg_distance_m for each waypoint around task
@@ -1282,17 +1353,27 @@ class FlightPlan {
         return this.text;
     }
 
+    get_title() {
+        let first_wp = this.task.waypoints[0];
+        let last_wp = this.task.waypoints[this.task.waypoints.length-1];
+        return first_wp.get_name() + " to " + last_wp.get_name();
+    }
+
     get_header_text() {
         let header_text = this.get_header_template();
         let first_wp = this.task.waypoints[0];
         let last_wp = this.task.waypoints[this.task.waypoints.length-1];
-        let title = first_wp.get_name() + " to " + last_wp.get_name();
+        let title = this.get_title();
         header_text = header_text.replace("#TITLE#", title);
         header_text = header_text.replace("#DESCR#", title);
 
         header_text = header_text.replace("#DEPARTURE_ID#", first_wp.icao);
         header_text = header_text.replace("#DEPARTURE_LLA#", this.get_world_position(first_wp));
-        header_text = header_text.replace("#DEPARTURE_POSITION#", first_wp.runway==null ? "" : first_wp.runway);
+        if (first_wp.runway==null) {
+            header_text = header_text.replace("<DeparturePosition>#DEPARTURE_POSITION#</DeparturePosition>","");
+        } else {
+            header_text = header_text.replace("#DEPARTURE_POSITION#", first_wp.runway);
+        }
         header_text = header_text.replace("#DEPARTURE_NAME#", first_wp.get_name());
 
         header_text = header_text.replace("#DESTINATION_ID#", last_wp.icao);
@@ -1304,17 +1385,22 @@ class FlightPlan {
 
     get_wp_text(index) {
         let wp = this.task.waypoints[index];
+        let encoded_name = this.task.get_encoded_name(wp);
         let wp_text = "";
         if (wp.icao==null) {
             let wp_template = this.get_wp_user_template();
-            wp_text = wp_template.replace("#ATCWAYPOINT_ID#",wp.get_name());
+            wp_text = wp_template.replace("#ATCWAYPOINT_ID#",encoded_name);
             wp_text = wp_text.replace("#WORLD_POSITION#",this.get_world_position(wp));
         } else {
             let wp_template = this.get_wp_airport_template();
-            wp_text = wp_template.replace("#ATCWAYPOINT_ID#",wp.get_name());
+            wp_text = wp_template.replace("#ATCWAYPOINT_ID#",encoded_name);
             wp_text = wp_text.replace("#ICAO_IDENT#", wp.icao);
             wp_text = wp_text.replace("#WORLD_POSITION#",this.get_world_position(wp));
-            wp_text = wp_text.replace("#RUNWAY_NUMBER_FP#", wp.runway==null ? "" : wp.runway);
+            if (wp.runway==null) {
+                wp_text = wp_text.replace("<RunwayNumberFP>#RUNWAY_NUMBER_FP#</RunwayNumberFP>","");
+            } else {
+                wp_text = wp_text.replace("#RUNWAY_NUMBER_FP#", wp.runway);
+            }
         }
         return wp_text;
     }
