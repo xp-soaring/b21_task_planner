@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+MAX_AIRPORTS_PER_BOX = 500 # This is the parameter which ensures no lat/lng box contains more than this number of airports
+
 """ airports.csv
 
 2021-08-21 = 66941 entries (624 large_airport)
@@ -30,58 +32,90 @@ keywords	LON, Londres	Extra keywords/phrases to assist with search, comma-separa
 
 import csv
 import math
+import json
 
-IDENT = 1
-TYPE = 2
-NAME = 3
-LAT = 4
-LNG = 5
-ELEVATION = 6
+# csv offsets in airports.csv file (see above)
+F_IDENT = 1
+F_TYPE = 2
+F_NAME = 3
+F_LAT = 4
+F_LNG = 5
+F_ELEVATION = 6
+
+# index offsets for our airport list (more compact text than using dict)
+AIRPORT_KEYS = {
+    'ident': 0,
+    'lat': 1,
+    'lng': 2,
+    'name': 3,
+    'type': 4,
+    'elevation': 5
+}
 
 M_TO_FEET = 3.28084
 
-AIRPORTS = {}
-MAX_AIRPORTS_PER_BOX = 1000
+BOX_COORDS = {}
+BOXES = {}
 
 def main():
     airports = [];
     with open('airports.csv') as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
-            airport = { 'lat': float(row[LAT]),
-                        'lng': float(row[LNG]),
-                        'name': row[NAME],
-                        'type': row[TYPE],
-                        'alt_m': 0 if row[ELEVATION]=='' else float(row[ELEVATION]) / M_TO_FEET
-            }
+            #airport = { 'lat': float(row[LAT]),
+            #            'lng': float(row[LNG]),
+            #            'name': row[NAME],
+            #            'type': row[TYPE],
+            #            'alt_m': 0 if row[ELEVATION]=='' else float(row[ELEVATION]) / M_TO_FEET
+            #}
+            airport = [ row[F_IDENT],
+                        float(row[F_LAT]),
+                        float(row[F_LNG]),
+                        row[F_NAME],
+                        row[F_TYPE],
+                        0 if row[F_ELEVATION]=='' else float(row[F_ELEVATION]) / M_TO_FEET
+            ]
             airports.append(airport)
 
-    shred(airports,"lng", "", { 'min_lat': -90, 'min_lng': -180, 'max_lat': 90, 'max_lng': 180} )
-    for key in AIRPORTS:
-        print(key, AIRPORTS[key]['box'], len(AIRPORTS[key]['airports']))
+    shred(airports,AIRPORT_KEYS['lng'], "", { 'min_lat': -90, 'min_lng': -180, 'max_lat': 90, 'max_lng': 180} )
+
+    make_json_file('airports.json')
+
+def make_json_file(name):
+    file_obj = {}
+    file_obj['airport_keys'] = AIRPORT_KEYS
+
+    file_obj['box_coords'] = BOX_COORDS
+    #for key in BOXES:
+    #    airports_list = 'debug'
+    file_obj['boxes'] = BOXES
+    with open(name, 'w') as f:
+        f.write(json.dumps(file_obj))
 
 def shred(airports, latlng, index, box_coords):
     if len(airports) <= MAX_AIRPORTS_PER_BOX:
-        AIRPORTS[index] = { 'box': box_coords, 'airports': airports }
+        BOX_COORDS[index] = box_coords
+        BOXES[index] = airports
     else:
         airports.sort(key=lambda airport: airport[latlng])
         mid = math.floor(len(airports)/2)
-        if latlng=='lat':
-            coords0 = { 'min_lat': box_coords['min_lat'], 'max_lat': airports[mid-1]['lat'],
+        if latlng==AIRPORT_KEYS['lat']:
+            coords0 = { 'min_lat': box_coords['min_lat'], 'max_lat': airports[mid-1][AIRPORT_KEYS['lat']],
                         'min_lng': box_coords['min_lng'], 'max_lng': box_coords['max_lng'] }
-            coords1 = { 'min_lat': airports[mid]['lat'],  'max_lat': box_coords['max_lat'],
+            coords1 = { 'min_lat': airports[mid][AIRPORT_KEYS['lat']],  'max_lat': box_coords['max_lat'],
                         'min_lng': box_coords['min_lng'], 'max_lng': box_coords['max_lng'] }
         else:
             coords0 = { 'min_lat': box_coords['min_lat'], 'max_lat': box_coords['max_lat'],
-                        'min_lng': box_coords['min_lng'], 'max_lng': airports[mid-1]['lng'] }
+                        'min_lng': box_coords['min_lng'], 'max_lng': airports[mid-1][AIRPORT_KEYS['lng']] }
             coords1 = { 'min_lat': box_coords['min_lat'], 'max_lat': box_coords['max_lat'],
-                        'min_lng': airports[mid]['lng'],  'max_lng': box_coords['max_lng'] }
+                        'min_lng': airports[mid][AIRPORT_KEYS['lng']],  'max_lng': box_coords['max_lng'] }
 
         box0 = airports[0:mid]
         box1 = airports[mid:]
 
-        shred(box0, 'lat' if latlng=='lng' else 'lng', index+"0", coords0)
-        shred(box1, 'lat' if latlng=='lng' else 'lng', index+"1", coords1)
+        next_latlng = AIRPORT_KEYS['lat'] if latlng==AIRPORT_KEYS['lng'] else AIRPORT_KEYS['lng']
+        shred(box0, next_latlng, index+"0", coords0)
+        shred(box1, next_latlng, index+"1", coords1)
 
 
 
