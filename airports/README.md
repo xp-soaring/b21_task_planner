@@ -59,7 +59,7 @@ The output file `airports.json` has the structure illustrated below, at the top 
         "lng": 2,
         "name": 3,
         "type": 4,
-        "elevation": 5
+        "alt_m": 5
     },
     "box_coords": {
         "1000000": {
