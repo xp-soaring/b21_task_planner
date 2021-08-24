@@ -71,7 +71,7 @@ class B21TaskPlanner {
         	attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         	subdomains: 'abcd',
         	minZoom: 0,
-        	maxZoom: 18,
+        	maxNativeZoom: 14,
         	ext: 'png'
         });
 
@@ -112,6 +112,8 @@ class B21TaskPlanner {
         }
 
         this.map = L.map(map_el, {
+            minZoom: 5,
+            maxZoom: 16,
             layers: [tiles_opentopomap, this.airport_markers]
         });
         //this.tiles_outdoor.addTo(this.map);
