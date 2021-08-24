@@ -71,7 +71,7 @@ class B21TaskPlanner {
         	attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         	subdomains: 'abcd',
         	minZoom: 0,
-        	maxNativeZoom: 14,
+        	maxNativeZoom: 13,
         	ext: 'png'
         });
 
@@ -97,12 +97,12 @@ class B21TaskPlanner {
         	attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Map style: &copy; <a href="https://www.OpenRailwayMap.org">OpenRailwayMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
         });
 
-        this.base_maps = { "Terrain": tiles_opentopomap,
-                            "Nat Geo": esri_natgeo_world,
+        this.base_maps = { "TopoMap": tiles_opentopomap,
+                            "NatGeo": esri_natgeo_world,
                             "Outdoor": tiles_outdoor,
                             //"Thunderforest Land": thunderforest_landscape,
                             //"Thunderforest Outdoor": thunderforest_outdoors,
-                            "Stamen Terrain": stamen_terrain,
+                            "StamenTerrain": stamen_terrain,
                             //"CyclOSM": cyclosm,
                            "Satellite": esri_world_imagery
         }
@@ -114,11 +114,16 @@ class B21TaskPlanner {
         this.map = L.map(map_el, {
             minZoom: 5,
             maxZoom: 16,
-            layers: [tiles_opentopomap, this.airport_markers]
+            layers: [this.base_maps[this.settings.base_layer_name], this.airport_markers]
         });
         //this.tiles_outdoor.addTo(this.map);
         //this.tiles_opentopomap.addTo(this.map);
         //esri_world_imagery.addTo(this.map);
+
+        this.map.on("baselayerchange",(e) => {
+            console.log("baselayerchange",e);
+            this.set_setting("base_layer_name",e.name);
+        });
 
         L.control.layers(this.base_maps, this.map_layers).addTo(this.map);
 
@@ -601,7 +606,8 @@ class B21TaskPlanner {
             wp_radius_units: ["m", "feet"],
             wp_radius_m:  500,
             wp_min_alt_m: 330,
-            wp_max_alt_m: 2000
+            wp_max_alt_m: 2000,
+            base_layer_name: "TopoMap"
         };
 
         this.settings_el = document.getElementById("settings");
@@ -731,7 +737,13 @@ class B21TaskPlanner {
     get_setting(var_name) {
         let value = window.localStorage.getItem('b21_task_planner_'+var_name);
         let error = true;
-        if (typeof this.settings_values[var_name] == "object") {
+        if (typeof this.settings_values[var_name] == "string") {
+            if (value==null || value=="") {
+                this.settings[var_name] = this.settings_values[var_name];
+            } else {
+                this.settings[var_name] = value;
+            }
+        } else if (typeof this.settings_values[var_name] == "object") {
             for (let i=0; i<this.settings_values[var_name].length; i++) {
                 if (value == this.settings_values[var_name][i]) {
                     this.settings[var_name] = value;
