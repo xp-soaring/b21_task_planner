@@ -5,8 +5,8 @@ class B21TaskPlanner {
     constructor() {
         this.M_TO_FEET = 3.28084;
         this.M_TO_MILES = 0.000621371;
-        this.AIRPORTS_JSON_URL = "https://xp-soaring.github.io/tasks/b21_task_planner/airports/airports.json";
-        //this.AIRPORTS_JSON_URL = "https://raw.githubusercontent.com/xp-soaring/b21_task_planner/main/airports/airports.json"
+        //this.AIRPORTS_JSON_URL = "https://xp-soaring.github.io/tasks/b21_task_planner/airports/airports.json";
+        this.AIRPORTS_JSON_URL = "https://raw.githubusercontent.com/xp-soaring/b21_task_planner/main/airports/airports.json"
         this.DEBUG_DRAW_MAP_BOXES = false;
     }
 
