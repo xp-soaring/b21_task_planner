@@ -27,6 +27,23 @@ class B21TaskPlanner {
 
         // Task object to hold accumulated waypoints
         this.task = new Task(this);
+
+        // Load parameters from querystring into this.querystring object
+        try {
+            this.querystring = this.parse_querystring();
+        } catch (e) {
+            this.querystring = null;
+            console.log("parse_querystring fail");
+        }
+        console.log(this.querystring);
+
+        this.load_pln_url(this.querystring);
+    }
+
+    parse_querystring() {
+        var search = location.search.substring(1);
+        console.log(search);
+        return JSON.parse('{"' + search.replace(/&/g, '","').replace(/=/g,'":"') + '"}', function(key, value) { return key===""?value:decodeURIComponent(value) })
     }
 
     init_map() {
@@ -280,6 +297,33 @@ class B21TaskPlanner {
         this.drop_zone_el.ondrop = (e) => { parent.reset(); parent.drop_handler(parent, e); };
     }
 
+    // Load a PLN file from param_obj.pln URL
+    load_pln_url(param_obj) {
+        if (param_obj == null) {
+            return;
+        }
+
+        if (param_obj["pln"] == null) {
+            return;
+        }
+
+        let request_str = param_obj["pln"];
+
+        console.log("load_pln_url",request_str);
+        fetch(request_str).then(response => {
+            if (!response.ok) {
+                console.log("User PLN url fetch error");
+                return null;
+            }
+            return response.text();
+        }).then( results => {
+            console.log("load_pln_url return ok");
+            this.handle_pln_str(results);
+        }).catch(error => {
+            console.error('Network error accessing user PLN URL:', error);
+        });
+    }
+
     drop_handler(parent, ev) {
         console.log('File(s) dropped');
         // Prevent default behavior (Prevent file from being opened)
@@ -295,7 +339,7 @@ class B21TaskPlanner {
                     console.log('DataTransferItemList... file[' + i + '].name = ' + file.name);
                     let reader = new FileReader();
                     reader.onload = (e) => {
-                        parent.handle_dropped_task_pln(e.target.result);
+                        parent.handle_pln_str(e.target.result);
                     }
                     console.log("reader.readAsText",file);
                     reader.readAsText(file);
@@ -308,7 +352,7 @@ class B21TaskPlanner {
                 console.log('DataTransfer... file[' + i + '].name = ' + ev.dataTransfer.files[i].name);
                 let reader = new FileReader();
                 reader.addEventListener("load", (e) => {
-                    parent.handle_dropped_task_pln(e.target.result);
+                    parent.handle_pln_str(e.target.result);
                 });
             	// event fired when file reading failed
             	reader.addEventListener('error', (e) => {
@@ -319,8 +363,8 @@ class B21TaskPlanner {
         }
     }
 
-    handle_dropped_task_pln(file_str) {
-        console.log("handle file");
+    handle_pln_str(file_str) {
+        console.log("handle string containing PLN XML");
         this.task.load_flightplan(file_str);
         this.map.fitBounds( [[this.task.min_lat, this.task.min_lng],[this.task.max_lat, this.task.max_lng]]);
     }
@@ -801,8 +845,8 @@ class WP {
         // Note each 'leg_' value is TO this waypoint
         this.index = index;
         this.task_line = null;
-        this.leg_bearing_deg = 0;   // Bearing from previous WP to this WP
-        this.leg_distance_m = 0;    // Distance (meters) from previous WP to this WP
+        this.leg_bearing_deg = null;   // Bearing from previous WP to this WP
+        this.leg_distance_m = null;    // Distance (meters) from previous WP to this WP
         this.marker = this.create_marker();
     }
 
@@ -953,6 +997,13 @@ class WP {
 
     set_runway(runway) {
         this.runway = runway;
+    }
+
+    get_leg_bearing() {
+        if (this.leg_bearing_deg==null) {
+            return "";
+        }
+        return this.leg_bearing_deg.toFixed(0);
     }
 
     update(prev_wp=null) {
@@ -1515,8 +1566,11 @@ class Task {
         heading3.innerHTML = altitude_units_str;
         headings_el.appendChild(heading3);
         let heading4 = document.createElement("th");
-        heading4.innerHTML = distance_units_str;
+        heading4.innerHTML = "deg(True)";
         headings_el.appendChild(heading4);
+        let heading5 = document.createElement("th");
+        heading5.innerHTML = distance_units_str;
+        headings_el.appendChild(heading5);
         task_list_el.appendChild(headings_el);
 
         // Add waypoints
@@ -1579,6 +1633,11 @@ class Task {
         let wp_alt_el = document.createElement("td");
         wp_alt_el.innerHTML = alt_str;
         wp_el.appendChild(wp_alt_el);
+
+        let wp_bearing_el = document.createElement("td");
+        wp_bearing_el.className = "task_wp_bearing";
+        wp_bearing_el.innerHTML = wp.get_leg_bearing();
+        wp_el.appendChild(wp_bearing_el);
 
         let wp_dist_el = document.createElement("td");
         wp_dist_el.innerHTML = dist_str;

@@ -50,6 +50,15 @@ body {
     margin-left: 5px;
     background-color: white;
     display: inline-block;
+    overflow-y: scroll;
+}
+
+#left_pane td {
+    text-align: right;
+}
+
+#left_pane .task_wp_bearing {
+    padding-right: 25px;
 }
 
 #drop_zone {
