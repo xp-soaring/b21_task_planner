@@ -73,14 +73,23 @@ body {
     line-height: 50px;
 }
 
-#map_pane {
+#right_pane {
     width: 78%;
-    height: 100%;
+    height: 100%; /* 100% or 80% depending on whether the baro is displayed */
     display: inline-block;
 }
 
 #map {
     height: 100%;
+}
+
+#barograph {
+    width: 100%;
+    height: 20%;
+    margin-top: 3px;
+    display: inline-block;
+    background-color: #aaaaaa;
+    display: none;
 }
 
 .menu {

@@ -297,6 +297,71 @@ class B21TaskPlanner {
         this.drop_zone_el.ondrop = (e) => { parent.reset(); parent.drop_handler(parent, e); };
     }
 
+    drop_handler(parent, ev) {
+        console.log('File(s) dropped');
+        // Prevent default behavior (Prevent file from being opened)
+        ev.preventDefault();
+
+        if (ev.dataTransfer.items && ev.dataTransfer.items.length>0) {
+            console.log(`dataTransfer.items ${ev.dataTransfer.items.length} found`);
+            // Use DataTransferItemList interface to access the file(s)
+            for (var i = 0; i < ev.dataTransfer.items.length; i++) {
+                // If dropped items aren't files, reject them
+                if (ev.dataTransfer.items[i].kind === 'file') {
+                    let file = ev.dataTransfer.items[i].getAsFile();
+                    console.log('DataTransferItemList... file[' + i + '].name = ' + file.name);
+                    let reader = new FileReader();
+                    reader.onload = (e) => {
+                        parent.handle_drop(parent, e, file.name);
+                    }
+                    console.log("reader.readAsText",file.name);
+                    reader.readAsText(file);
+                }
+            }
+        } else {
+            console.log("dataTransfer.items not found, using dataTransfer.files");
+            // Use DataTransfer interface to access the file(s)
+            for (var i = 0; i < ev.dataTransfer.files.length; i++) {
+                let file = ev.dataTransfer.files[i];
+                console.log('DataTransfer... file[' + i + '].name = ' + file.name);
+                let reader = new FileReader();
+                reader.addEventListener("load", (e) => {
+                    parent.handle_drop(parent, e);
+                });
+            	// event fired when file reading failed
+            	reader.addEventListener('error', (e) => {
+            	    alert('Error : Failed to read file');
+            	});
+                reader.readAsText(file);
+            }
+        }
+    }
+
+    handle_drop(parent, e, name=null) {
+        console.log("handle_drop",name, e);
+        if (name==null) {
+            console.log("No name for dropped file - aborting");
+            return;
+        }
+        if (name.toLowerCase().endsWith(".pln")) {
+            parent.handle_pln_str(e.target.result, name);
+            return;
+        }
+        if (name.toLowerCase().endsWith(".gpx")) {
+            parent.handle_gpx_str(e.target.result, name);
+            return;
+        }
+    }
+
+    dragover_handler(ev) {
+        // Prevent default behavior (Prevent file from being opened)
+        ev.preventDefault();
+    }
+
+    // ********************************************************************************************
+    // *********  Handle PLN file (from drop or URL)                   ****************************
+    // ********************************************************************************************
+
     // Load a PLN file from param_obj.pln URL
     load_pln_url(param_obj) {
         if (param_obj == null) {
@@ -316,51 +381,12 @@ class B21TaskPlanner {
                 return null;
             }
             return response.text();
-        }).then( results => {
+        }).then( result_str => {
             console.log("load_pln_url return ok");
-            this.handle_pln_str(results);
+            this.handle_pln_str(result_str);
         }).catch(error => {
             console.error('Network error accessing user PLN URL:', error);
         });
-    }
-
-    drop_handler(parent, ev) {
-        console.log('File(s) dropped');
-        // Prevent default behavior (Prevent file from being opened)
-        ev.preventDefault();
-
-        if (ev.dataTransfer.items && ev.dataTransfer.items.length>0) {
-            console.log(`dataTransfer.items ${ev.dataTransfer.items.length} found`);
-            // Use DataTransferItemList interface to access the file(s)
-            for (var i = 0; i < ev.dataTransfer.items.length; i++) {
-                // If dropped items aren't files, reject them
-                if (ev.dataTransfer.items[i].kind === 'file') {
-                    var file = ev.dataTransfer.items[i].getAsFile();
-                    console.log('DataTransferItemList... file[' + i + '].name = ' + file.name);
-                    let reader = new FileReader();
-                    reader.onload = (e) => {
-                        parent.handle_pln_str(e.target.result);
-                    }
-                    console.log("reader.readAsText",file);
-                    reader.readAsText(file);
-                }
-            }
-        } else {
-            console.log("dataTransfer.items not found, using dataTransfer.files");
-            // Use DataTransfer interface to access the file(s)
-            for (var i = 0; i < ev.dataTransfer.files.length; i++) {
-                console.log('DataTransfer... file[' + i + '].name = ' + ev.dataTransfer.files[i].name);
-                let reader = new FileReader();
-                reader.addEventListener("load", (e) => {
-                    parent.handle_pln_str(e.target.result);
-                });
-            	// event fired when file reading failed
-            	reader.addEventListener('error', (e) => {
-            	    alert('Error : Failed to read file');
-            	});
-                reader.readAsText(file);
-            }
-        }
     }
 
     handle_pln_str(file_str) {
@@ -369,9 +395,19 @@ class B21TaskPlanner {
         this.map.fitBounds( [[this.task.min_lat, this.task.min_lng],[this.task.max_lat, this.task.max_lng]]);
     }
 
-    dragover_handler(ev) {
-        // Prevent default behavior (Prevent file from being opened)
-        ev.preventDefault();
+// ********************************************************************************************
+// *********  Handle GPX file (from drop or URL)                   ****************************
+// ********************************************************************************************
+
+    handle_gpx_str(file_str, name) {
+        console.log("handle_gpx_str", name);
+        this.track_log = new TrackLog(this);
+        this.track_log.load_gpx(file_str, name);
+        this.track_log.draw(this.map);
+        // zoom the map to the polyline
+        this.map.fitBounds(this.track_log.polyline.getBounds());
+
+        this.track_log.draw_baro();
     }
 
 // ********************************************************************************************
@@ -1717,6 +1753,122 @@ class Task {
         return str;
     }
 } // end Task class
+
+// ******************************************************************************
+// ***********   TrackLog class            **************************************
+// ******************************************************************************
+
+class TrackLog {
+
+    constructor(planner) {
+        this.planner = planner;
+        this.logpoints = [];
+        this.name = "No name";
+        this.barograph = false; // Is baro chart displayed
+    }
+
+    load_gpx(file_str, name) {
+
+        this.name = name;
+
+        let parser = new DOMParser();
+        let xmlDoc = parser.parseFromString(file_str, "text/xml");
+        let gpx = xmlDoc.getElementsByTagName("gpx");
+        if (gpx==null || gpx.length==0) {
+            console.log("Bad GPX");
+            return;
+        }
+        let trks = gpx[0].getElementsByTagName("trk");
+        if (trks==null || trks.length==0) {
+            console.log("Bad GPX.trks");
+        }
+        //DEBUG only checking first "trk" element
+        let trksegs = trks[0].getElementsByTagName("trkseg");
+        if (trksegs==null || trksegs.length==0) {
+            console.log("Bad GPX.trks[0].trksegs");
+        }
+        for (let i=0; i<trksegs.length; i++) {
+            let trkseg = trksegs[i];
+            this.load_trkseg(trkseg);
+        }
+        console.log(`TrackLog.load_gpx loaded ${this.logpoints.length} logpoints`);
+    }
+
+    load_trkseg(trkseg) {
+        let trkpts = trkseg.getElementsByTagName("trkpt");
+        if (trkpts==null || trkpts.length==0) {
+            return;
+        }
+        for (let i=0; i<trkpts.length; i++) {
+            let trkpt = trkpts[i];
+            let decoded_pt = {};
+            // lat
+            decoded_pt["lat"] = parseFloat(trkpt.getAttribute("lat"));
+            // lng
+            decoded_pt["lng"] = parseFloat(trkpt.getAttribute("lon"));
+            // alt_m
+            let alts = trkpt.getElementsByTagName("ele");
+            if (alts!=null && alts.length!=0) {
+                decoded_pt["alt_m"] = parseFloat(alts[0].childNodes[0].nodeValue);
+            }
+            // time_iso, ts
+            let times = trkpt.getElementsByTagName("time");
+            if (times!=null && times.length!=0) {
+                let time_iso = times[0].childNodes[0].nodeValue;
+                decoded_pt["time_iso"] = time_iso;
+                decoded_pt["ts"] = (new Date(time_iso)).getTime()/1000;
+            }
+
+            this.logpoints.push(decoded_pt);
+        }
+    }
+
+    // Draw the polyline for this tracklog on the map
+    draw(map) {
+        let coords = this.logpoints.map(p => [p.lat.toFixed(6), p.lng.toFixed(6)]);
+
+        this.polyline = L.polyline(coords, { weight: 4, color: 'darkred' }).addTo(map);
+    }
+
+    draw_baro() {
+        let el = document.getElementById("barograph");
+        if (!this.barograph) {
+            let map_el = document.getElementById("map");
+            map_el.style.height = "80%";
+            el.style.display = "block";
+            this.barograph = true;
+            this.planner.map.invalidateSize();
+        }
+        let data_points = this.logpoints.map(p => [new Date(p.time_iso), p.alt_m]);
+        Highcharts.chart('barograph', {
+            chart: { zoomType: 'x' },
+            title: { text: this.name },
+            subtitle: { text: document.ontouchstart === undefined ?
+                    'Click and drag in the plot area to zoom in' : 'Pinch the chart to zoom in'
+            },
+            xAxis: { type: 'datetime' },
+            yAxis: { title: { text: 'Altitude(m)' } },
+            legend: { enabled: false },
+            plotOptions: {
+                area: {
+                    fillColor: {
+                        linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+                        stops: [
+                            [0, Highcharts.getOptions().colors[0]],
+                            [1, Highcharts.color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]
+                        ]
+                    },
+                    marker: { radius: 2 },
+                    lineWidth: 1,
+                    states: { hover: { lineWidth: 1 } },
+                    threshold: null
+                }
+            },
+            series: [{ type: 'area', name: "Alt(m) / time", data: data_points }]
+        });
+    } // end draw_baro()
+
+} // End class TrackLog
 
 // ******************************************************************************
 // ***********   FlightPlan class          **************************************

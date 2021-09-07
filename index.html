@@ -16,6 +16,9 @@
     <link href="style/main.css" rel="stylesheet"/>
     <link href="style/leaflet_mods.css" rel="stylesheet"/>
 
+    <script src="js/highcharts.js"></script>
+    <link href="style/highcharts.css" rel="stylesheet"/>
+
     <script src="js/semicircle.js"></script>
     <script src="js/b21_geo_static.js"> </script> <!-- Defines Geo functions (static) -->
     <script src="js/b21_task_planner.js"> </script> <!-- Defines B21TaskPlanner class -->
@@ -60,8 +63,9 @@ function loaded() {
             <div id="task_list"></div>
             <div id="drop_zone">CLICK MAP TO START, OR DROP MSFS FLIGHT PLAN HERE</div>
         </div> <!-- end left_pane -->
-        <div id="map_pane">
+        <div id="right_pane">
             <div id="map"></div>
+            <div id="barograph"></div>
         </div>
         <div id="settings">
             <div id="settings_heading">
