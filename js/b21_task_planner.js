@@ -5,6 +5,8 @@ class B21TaskPlanner {
     constructor() {
         this.M_TO_FEET = 3.28084;
         this.M_TO_MILES = 0.000621371;
+        this.MS_TO_KPH = 3.6;
+        this.MS_TO_KNOTS = 1.94384;
         this.AIRPORTS_JSON_URL = "https://xp-soaring.github.io/tasks/b21_task_planner/airports/airports.json";
         //this.AIRPORTS_JSON_URL = "https://raw.githubusercontent.com/xp-soaring/b21_task_planner/main/airports/airports.json"
         this.DEBUG_DRAW_MAP_BOXES = false;
@@ -154,6 +156,13 @@ class B21TaskPlanner {
 
         this.update_skyvector_link(parent.map.getCenter(), parent.map.getZoom());
 
+        this.create_baro_marker(parent);
+
+        this.set_map_events(parent);
+
+    }
+
+    set_map_events(parent) {
         // Set up the map mouse click callbacks
         this.map.on('click', (e) => {parent.map_left_click(parent, e);} );
 
@@ -171,6 +180,26 @@ class B21TaskPlanner {
             //parent.update_skyvector_link(parent.map.getCenter(), parent.map.getZoom());
             //parent.draw_airports();
         });
+    }
+
+    create_baro_marker(parent) {
+        let position = new L.latLng(0,0);
+        parent.baro_marker = L.circleMarker(position, {
+                                    color: "darkred",
+                                    radius: 30
+                                });
+        parent.baro_marker.addTo(parent.map);
+        parent.baro_marker.bindPopup("Foo<br/>Bar<br/>FUBAR");
+        parent.baro_marker.on('mouseover', function(event){
+            parent.baro_marker.openPopup();
+        });
+        parent.baro_marker.on('mouseout', function(event){
+            parent.baro_marker.closePopup();
+        });
+        parent.baro_marker.on('click', (e) => {
+            console.log("User baro_marker click");
+        });
+
     }
 
 // ********************************************************************************************
@@ -665,6 +694,7 @@ class B21TaskPlanner {
         this.settings_values = {
             soaring_task: 1,                // 1 or 0 = true/false whether to embed the B21/ALBATROSS soaring params
             altitude_units: ["feet","m"],
+            speed_units: ["kph","knots"],
             distance_units: ["km", "miles" ],
             wp_radius_units: ["m", "feet"],
             wp_radius_m:  500,
@@ -773,6 +803,16 @@ class B21TaskPlanner {
 
     set_altitude_units_feet() {
         this.set_setting("altitude_units","feet");
+        this.task.display_task_list();
+    }
+
+    set_speed_units_kph() {
+        this.set_setting("speed_units","kph");
+        this.task.display_task_list();
+    }
+
+    set_speed_units_knots() {
+        this.set_setting("speed_units","knots");
         this.task.display_task_list();
     }
 
@@ -1790,6 +1830,7 @@ class TrackLog {
         for (let i=0; i<trksegs.length; i++) {
             let trkseg = trksegs[i];
             this.load_trkseg(trkseg);
+
         }
         console.log(`TrackLog.load_gpx loaded ${this.logpoints.length} logpoints`);
     }
@@ -1799,9 +1840,10 @@ class TrackLog {
         if (trkpts==null || trkpts.length==0) {
             return;
         }
+        let decoded_pt;
         for (let i=0; i<trkpts.length; i++) {
             let trkpt = trkpts[i];
-            let decoded_pt = {};
+            decoded_pt = {};
             // lat
             decoded_pt["lat"] = parseFloat(trkpt.getAttribute("lat"));
             // lng
@@ -1819,8 +1861,15 @@ class TrackLog {
                 decoded_pt["ts"] = (new Date(time_iso)).getTime()/1000;
             }
 
+            // speed m/s
+            if (this.logpoints.length > 0) {
+                let prev_pt = this.logpoints[this.logpoints.length-1];
+                let dist_m = Geo.get_distance_m(prev_pt, decoded_pt);
+                decoded_pt["speed_ms"] = dist_m / (decoded_pt["ts"] - prev_pt["ts"]);
+            }
             this.logpoints.push(decoded_pt);
         }
+        return decoded_pt;
     }
 
     // Draw the polyline for this tracklog on the map
@@ -1830,26 +1879,83 @@ class TrackLog {
         this.polyline = L.polyline(coords, { weight: 4, color: 'darkred' }).addTo(map);
     }
 
+    // Use Highcharts to draw a time/altitude plot
     draw_baro() {
+        let parent = this;
         let el = document.getElementById("barograph");
         if (!this.barograph) {
             let map_el = document.getElementById("map");
-            map_el.style.height = "80%";
+            map_el.style.height = "75%";
             el.style.display = "block";
             this.barograph = true;
             this.planner.map.invalidateSize();
         }
-        let data_points = this.logpoints.map(p => [new Date(p.time_iso), p.alt_m]);
+        let alt_scaler = 1;
+        let alt_units_str = "m";
+        if (this.planner.settings.altitude_units == "feet") {
+            alt_scaler = this.planner.M_TO_FEET;
+            alt_units_str = "feet";
+        }
+        let speed_scaler = this.planner.MS_TO_KPH;
+        let speed_units_str = "kph";
+        if (this.planner.settings.speed_units == "knots") {
+            speed_scaler = this.planner.MS_TO_KNOTS;
+            speed_units_str = "knots";
+        }
+        let baro_points = this.logpoints.map(p => [new Date(p.time_iso), p.alt_m * alt_scaler]);
+        let speed_points = this.logpoints.map(p => [new Date(p.time_iso), p.speed_ms * speed_scaler]);
         Highcharts.chart('barograph', {
             chart: { zoomType: 'x' },
             title: { text: this.name },
-            subtitle: { text: document.ontouchstart === undefined ?
-                    'Click and drag in the plot area to zoom in' : 'Pinch the chart to zoom in'
-            },
+            //subtitle: { text: document.ontouchstart === undefined ?
+            //        'Click and drag in the plot area to zoom in' : 'Pinch the chart to zoom in'
+            //},
             xAxis: { type: 'datetime' },
-            yAxis: { title: { text: 'Altitude(m)' } },
+            yAxis: [ {  title: { text: 'Altitude('+alt_units_str+')' },
+                        min: 0,
+                        max: 12000,
+                        startOnTick: false,
+                        endOnTick: false,
+                        tickInterval: 1000 },
+                     { title: { text: 'Speed('+speed_units_str+')' }, min: 50, max: 180, tickInterval: 20, opposite: true }
+                 ],
             legend: { enabled: false },
+            tooltip: {
+                backgroundColor: '#FCFFC5',
+                borderColor: 'black',
+                borderRadius: 10,
+                borderWidth: 3,
+                formatter: function () {
+                    let str = this.x+"<br/>";
+                    let p = parent.logpoints[this.point.index];
+                    str += "Speed ("+speed_units_str+"): "+ (p.speed_ms * speed_scaler).toFixed(0)+"<br/>";
+                    str += "Alt ("+alt_units_str+"): "+(p.alt_m * alt_scaler).toFixed(0)
+                     return str;
+                }
+            },
             plotOptions: {
+                series: {
+                    cursor: 'pointer',
+                    events: {
+                        click: function (e) {
+                            console.log("graph click",e);
+                            //alert('You just clicked the graph at '+e.point.index);
+                        }
+                    },
+                    point: {
+                        events: {
+                            click: function (e) { console.log("point clicked ",e.point.index); },
+                            mouseOver: function (e) {
+                                let p = parent.logpoints[e.target.index];
+                                parent.planner.baro_marker.setLatLng(new L.LatLng(p.lat, p.lng));
+                                //console.log("mouseover", this.x, this.y, e.target.index);
+                            },
+                            mouseOut: function (e) {
+                                //console.log("mouseout", this.x, this.y, e.target.index);
+                            }
+                        }
+                    }
+                },
                 area: {
                     fillColor: {
                         linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
@@ -1862,9 +1968,14 @@ class TrackLog {
                     lineWidth: 1,
                     states: { hover: { lineWidth: 1 } },
                     threshold: null
+                },
+                line: {
+                    lineWidth: 1,
+                    color: '#cccccc'
                 }
             },
-            series: [{ type: 'area', name: "Alt(m) / time", data: data_points }]
+            series: [ { yAxis: 0, type: 'area', name: "Alt", data: baro_points },
+                      { yAxis: 1, type: 'line', name: "Speed", data: speed_points }]
         });
     } // end draw_baro()
 
