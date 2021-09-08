@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<SimBase.Document Type="AceXML" version="1,0">
+    <Descr>AceXML Document</Descr>
+    <FlightPlan.FlightPlan>
+        <Title>Aerodromul Sânpetru-Brașov to Caransebes</Title>
+        <FPType>VFR</FPType>
+        <CruisingAlt>1500.000</CruisingAlt>
+        <DepartureID>LRSA</DepartureID>
+        <DepartureLLA>N45° 43' 15.84",E25° 38' 1.41",+001708.00</DepartureLLA>
+        <DestinationID>LRCS</DestinationID>
+        <DestinationLLA>N45° 25' 13.00",E22° 15' 8.00",+000836.00</DestinationLLA>
+        <Descr>Aerodromul Sânpetru-Brașov to Caransebes</Descr>
+        <DeparturePosition>12</DeparturePosition>
+        <DepartureName>Aerodromul Sânpetru-Brașov</DepartureName>
+        <DestinationName>Caransebes</DestinationName>
+        <AppVersion>
+            <AppVersionMajor>11</AppVersionMajor>
+            <AppVersionBuild>282174</AppVersionBuild>
+        </AppVersion>
+
+        <ATCWaypoint id="Aerodromul Sânpetru-Brașov">
+            <ATCWaypointType>Airport</ATCWaypointType>
+            <WorldPosition>N45° 43' 15.84",E25° 38' 1.41",+001708.00</WorldPosition>
+            <RunwayNumberFP>12</RunwayNumberFP>
+            <SpeedMaxFP>-1</SpeedMaxFP>
+            <ICAO>
+                <ICAOIdent>LRSA</ICAOIdent>
+            </ICAO>
+        </ATCWaypoint>
+
+        <ATCWaypoint id="*Start+1736|5000-7000x2000">
+            <ATCWaypointType>User</ATCWaypointType>
+            <WorldPosition>N45° 42' 4.55",E25° 31' 49.22",+001736.00</WorldPosition>
+            <SpeedMaxFP>-1</SpeedMaxFP>
+        </ATCWaypoint>
+
+        <ATCWaypoint id="POI1+2087">
+            <ATCWaypointType>User</ATCWaypointType>
+            <WorldPosition>N45° 17' 40.57",E25° 3' 45.64",+002086.61</WorldPosition>
+            <SpeedMaxFP>-1</SpeedMaxFP>
+        </ATCWaypoint>
+
+        <ATCWaypoint id="POI2+1273">
+            <ATCWaypointType>User</ATCWaypointType>
+            <WorldPosition>N45° 40' 17.82",E24° 15' 38.80",+001272.97</WorldPosition>
+            <SpeedMaxFP>-1</SpeedMaxFP>
+        </ATCWaypoint>
+
+        <ATCWaypoint id="POI3+1024">
+            <ATCWaypointType>User</ATCWaypointType>
+            <WorldPosition>N45° 10' 57.73",E23° 22' 42.08",+001023.62</WorldPosition>
+            <SpeedMaxFP>-1</SpeedMaxFP>
+        </ATCWaypoint>
+
+        <ATCWaypoint id="Final+751|5000-2000">
+            <ATCWaypointType>User</ATCWaypointType>
+            <WorldPosition>N45° 21' 14.51",E22° 15' 3.95",+000751.31</WorldPosition>
+            <SpeedMaxFP>-1</SpeedMaxFP>
+        </ATCWaypoint>
+
+        <ATCWaypoint id="*Finish+761|2000-800x500">
+            <ATCWaypointType>User</ATCWaypointType>
+            <WorldPosition>N45° 23' 59.09",E22° 15' 0.04",+000761.15</WorldPosition>
+            <SpeedMaxFP>-1</SpeedMaxFP>
+        </ATCWaypoint>
+
+        <ATCWaypoint id="Caransebes">
+            <ATCWaypointType>Airport</ATCWaypointType>
+            <WorldPosition>N45° 25' 13.00",E22° 15' 8.00",+000836.00</WorldPosition>
+            
+            <SpeedMaxFP>-1</SpeedMaxFP>
+            <ICAO>
+                <ICAOIdent>LRCS</ICAOIdent>
+            </ICAO>
+        </ATCWaypoint>
+
+    </FlightPlan.FlightPlan>
+</SimBase.Document>
