@@ -1,6 +1,6 @@
 "use strict"
 
-class B21TaskPlanner {
+class B21_TaskPlanner {
 
     constructor() {
         this.M_TO_FEET = 3.28084;
@@ -28,7 +28,7 @@ class B21TaskPlanner {
         this.init_airports();
 
         // Task object to hold accumulated waypoints
-        this.task = new Task(this);
+        this.task = new B21_Task(this);
 
         // Load parameters from querystring into this.querystring object
         try {
@@ -323,7 +323,7 @@ class B21TaskPlanner {
         this.drop_zone_el.style.display = "block";
         let parent = this;
         this.drop_zone_el.ondragover = (e) => {parent.dragover_handler(e); };
-        this.drop_zone_el.ondrop = (e) => { parent.reset(); parent.drop_handler(parent, e); };
+        this.drop_zone_el.ondrop = (e) => { parent.drop_handler(parent, e); };
     }
 
     drop_handler(parent, ev) {
@@ -373,6 +373,7 @@ class B21TaskPlanner {
             return;
         }
         if (name.toLowerCase().endsWith(".pln")) {
+            parent.reset(); 
             parent.handle_pln_str(e.target.result, name);
             return;
         }
@@ -430,7 +431,7 @@ class B21TaskPlanner {
 
     handle_gpx_str(file_str, name) {
         console.log("handle_gpx_str", name);
-        this.track_log = new TrackLog(this);
+        this.track_log = new B21_TrackLog(this);
         this.track_log.load_gpx(file_str, name);
         this.track_log.draw(this.map);
         // zoom the map to the polyline
@@ -581,22 +582,36 @@ class B21TaskPlanner {
         this.task.display_task_list();
     }
 
-    change_wp_radius(new_radius) {
-        console.log("new wp radius = ",new_radius);
-        this.task.current_wp().radius_m = parseFloat(new_radius) / (this.settings.wp_radius_units=="m" ? 1 : this.M_TO_FEET);
+    change_wp_radius(radius_str) {
+        console.log("new wp radius = "+radius_str);
+        let radius_m = parseFloat(radius_str) / (this.settings.wp_radius_units=="m" ? 1 : this.M_TO_FEET);
+        let wp = this.task.current_wp();
+        if (radius_m==null || isNaN(radius_m) || radius_m==0) {
+            wp.set_radius(null);
+        } else {
+            wp.set_radius(radius_m);
+        }
         this.task.redraw();
         this.task.display_task_list();
     }
 
     change_wp_max_alt(new_alt) {
         console.log("new wp max alt = ",new_alt);
-        this.task.current_wp().max_alt_m = parseFloat(new_alt) / (this.settings.altitude_units=="m" ? 1 : this.M_TO_FEET);
+        let wp = this.task.current_wp();
+        wp.max_alt_m = parseFloat(new_alt) / (this.settings.altitude_units=="m" ? 1 : this.M_TO_FEET);
+        if (isNaN(wp.max_alt_m) || wp.max_alt_m==0) {
+            wp.max_alt_m = null;
+        }
         this.task.display_task_list();
     }
 
     change_wp_min_alt(new_alt) {
         console.log("new wp min alt = ",new_alt);
-        this.task.current_wp().min_alt_m = parseFloat(new_alt) / (this.settings.altitude_units=="m" ? 1 : this.M_TO_FEET);
+        let wp = this.task.current_wp();
+        wp.min_alt_m = parseFloat(new_alt) / (this.settings.altitude_units=="m" ? 1 : this.M_TO_FEET);
+        if (isNaN(wp.min_alt_m) || wp.min_alt_m==0) {
+            wp.min_alt_m = null;
+        }
         this.task.display_task_list();
     }
 
@@ -672,9 +687,7 @@ class B21TaskPlanner {
 
     update_elevations() {
         console.log("Update elevations");
-        for (let i=0; i<this.task.waypoints.length; i++) {
-            this.task.waypoints[i].request_alt_m();
-        }
+        this.task.update_elevations();
     }
 
     reset_map() {

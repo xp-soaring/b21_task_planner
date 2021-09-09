@@ -2,7 +2,9 @@
 // ***********   FlightPlan class          **************************************
 // ******************************************************************************
 
-class FlightPlan {
+// Constructs a .PLN file for output
+
+class B21_FlightPlan {
 
     constructor(task) {
 
@@ -44,7 +46,10 @@ class FlightPlan {
     get_title() {
         let first_wp = this.task.waypoints[0];
         let last_wp = this.task.waypoints[this.task.waypoints.length-1];
-        return first_wp.get_name() + " to " + last_wp.get_name();
+        let from = first_wp.icao != null ? first_wp.icao : first_wp.get_name();
+        let to = last_wp.icao != null ? last_wp.icao : last_wp.get_name();
+
+        return from + " to " + to;
     }
 
     // Return the XML string for the 'header' part of the PLN file
@@ -164,7 +169,6 @@ class FlightPlan {
             <ATCWaypointType>Airport</ATCWaypointType>
             <WorldPosition>#WORLD_POSITION#</WorldPosition>
             <RunwayNumberFP>#RUNWAY_NUMBER_FP#</RunwayNumberFP>
-            <SpeedMaxFP>-1</SpeedMaxFP>
             <ICAO>
                 <ICAOIdent>#ICAO_IDENT#</ICAOIdent>
             </ICAO>
@@ -177,7 +181,6 @@ class FlightPlan {
         <ATCWaypoint id="#ATCWAYPOINT_ID#">
             <ATCWaypointType>User</ATCWaypointType>
             <WorldPosition>#WORLD_POSITION#</WorldPosition>
-            <SpeedMaxFP>-1</SpeedMaxFP>
         </ATCWaypoint>
 `;
     }
@@ -187,7 +190,6 @@ class FlightPlan {
         <ATCWaypoint id="#ATCWAYPOINT_ID#">
             <ATCWaypointType>Intersection</ATCWaypointType>
             <WorldPosition>#WORLD_POSITION#</WorldPosition>
-            <SpeedMaxFP>-1</SpeedMaxFP>
             <ICAO>
                 <ICAOIdent>#ICAO_IDENT#</ICAOIdent>
             </ICAO>

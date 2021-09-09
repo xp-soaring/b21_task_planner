@@ -2,7 +2,7 @@
 // ***********   WP class (waypoint)       **************************************
 // ******************************************************************************
 
-class WP {
+class B21_WP {
 
     // Waypoint may be created by a click on the map:
     //          new WP(planner, index, position)
@@ -28,6 +28,7 @@ class WP {
         this.name = null;
         this.position = position;
         this.icao = null;
+        this.data_icao = null; // original ICAO code from source data (may not use in output PLN if not first/last waypoint)
         this.runway = null; // Selected runway
         this.runways = null; // List of available runways
         this.alt_m = 0;
@@ -69,15 +70,15 @@ class WP {
         let icao_codes = dom_wp.getElementsByTagName("ICAOIdent");
         let runways = dom_wp.getElementsByTagName("RunwayNumberFP");
 
-        //DEBUG load departure and arrival airports from flight plan
-        //BDEBUG load runway from flight plan
         console.log(world_position);
         this.construct_new(index,new L.latLng(lat,lng));
 
         this.name = name;
         this.alt_m = parseFloat(world_pos_elements[2]) / this.planner.M_TO_FEET;
         if (icao_codes.length>0) {
-            this.icao = icao_codes[0].childNodes[0].nodeValue;
+            this.data_icao = icao_codes[0].childNodes[0].nodeValue;
+            this.icao = this.data_icao;
+            console.log("Set icao to "+this.icao);
         }
         if (runways.length>0) {
             let runway_nodes = runways[0].childNodes;
@@ -196,6 +197,10 @@ class WP {
         this.runway = runway;
     }
 
+    set_radius(radius_m) {
+        this.radius_m = radius_m;
+    }
+
     get_leg_bearing() {
         if (this.leg_bearing_deg==null) {
             return "";
@@ -305,7 +310,7 @@ class WP {
     }
 
     copy(index) {
-        let wp = new WP(this.planner, index, this.position);
+        let wp = new B21_WP(this.planner, index, this.position);
         wp.name = this.name;
         wp.alt_m = this.alt_m;
         wp.icao = this.icao;

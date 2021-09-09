@@ -2,7 +2,7 @@
 // ***********   Task class                **************************************
 // ******************************************************************************
 
-class Task {
+class B21_Task {
     constructor(planner) {
         this.planner = planner; // Reference to B21TaskPlanner instance
         this.task_el = document.getElementById("task_list");
@@ -47,7 +47,7 @@ class Task {
     }
 
     save_flightplan() {
-        let fp = new FlightPlan(this);
+        let fp = new B21_FlightPlan(this);
         let filename = fp.get_title()+".pln";
         let text = fp.get_text();
 
@@ -80,11 +80,11 @@ class Task {
     add_new_wp(position, dom_wp=null) {
         //this.index = this.waypoints.length;
         let wp_index = this.index==null ? 0 : this.index + 1;
-        console.log(">>>>>>>task adding wp with index",this.index);
+        console.log(">>>>>>>task adding wp with index",wp_index);
         let wp;
         try {
             // An exception will be generated if this WP should be ignored, e.g. TIMECRUIS
-            wp = new WP(this.planner, wp_index, position, dom_wp);
+            wp = new B21_WP(this.planner, wp_index, position, dom_wp);
         } catch (e) {
             console.log("add_new_wp skipping:",e);
             return;
@@ -120,7 +120,9 @@ class Task {
         }
         if (this.is_msfs_airport(type) && (this.planner.settings.soaring_task==0 || wp.index == 0 || wp.index == this.waypoints.length-1)) {
             wp.name = poi_info["name"];
-            wp.icao = poi_info["ident"];
+            wp.data_icao = poi_info["ident"];
+            wp.icao = wp.data_icao;
+            console.log("task.add_new_poi added with icao "+wp.icao);
         } else {
             if (this.is_msfs_airport(type)) {
                 wp.name = poi_info["ident"] + " " + poi_info["name"];
@@ -194,7 +196,11 @@ class Task {
             return;
         }
         // Handle START/FINISH
-        if (wp.name.startsWith("*")) {
+        if (wp.name.toLowerCase().startsWith("start")) {
+            this.start_index = wp.index;
+        } else if (wp.name.toLowerCase().startsWith("finish")) {
+            this.finish_index = wp.index;
+        } else if (wp.name.startsWith("*")) {
             if (this.start_index==null) {
                 console.log("Setting "+wp.name+" as START");
                 this.start_index = wp.index;
@@ -204,6 +210,7 @@ class Task {
             }
             wp.name = wp.name.slice(1);
         }
+
         // Handle WP ELEVATION
         let wp_extra = "";
         let wp_plus = wp.name.split('+');
@@ -225,7 +232,7 @@ class Task {
                 wp.max_alt_m = max_alt_feet / this.planner.M_TO_FEET;
             }
         }
-        let wp_slash = wp_extra.split("-");
+        let wp_slash = wp_extra.split("/");
         if (wp_slash.length>1) {
             let min_alt_feet = parseFloat(wp_slash[wp_slash.length-1]);
             if (!isNaN(min_alt_feet)) {
@@ -237,8 +244,9 @@ class Task {
         console.log("wp_extra is", wp_extra);
         let wp_x = wp_extra.split("x");
         if (wp_x.length>1) {
-            let wp_radius_m = parseFloat(wp_x[wp_x.length-1]);
-            if (!isNaN(wp_radius_m)) {
+            let wp_width_m = parseFloat(wp_x[wp_x.length-1]);
+            if (!isNaN(wp_width_m)) {
+                let wp_radius_m = wp_width_m / 2;
                 console.log("parse wp_radius_m",wp_radius_m);
                 wp.radius_m = wp_radius_m;
             }
@@ -269,14 +277,14 @@ class Task {
                 encoded_name += "|";
                 extra = true;
             }
-            encoded_name += "-"+(wp.min_alt_m * this.planner.M_TO_FEET).toFixed(0);
+            encoded_name += "/"+(wp.min_alt_m * this.planner.M_TO_FEET).toFixed(0);
         }
         if (wp.radius_m!=null) {
             if (!extra) {
                 encoded_name += "|";
                 extra = true;
             }
-            encoded_name += "x"+wp.radius_m.toFixed(0);
+            encoded_name += "x"+(wp.radius_m*2).toFixed(0);
         }
         return encoded_name;
     }
@@ -298,6 +306,15 @@ class Task {
         console.log("update_waypoint_icons");
         for (let i=0; i<this.waypoints.length; i++) {
             this.waypoints[i].update_icon();
+        }
+    }
+
+    update_elevations() {
+        for (let i=0; i<this.waypoints.length; i++) {
+            let wp = this.waypoints[i];
+            if (wp.data_icao==null) { // Only request elevations for non-airports
+                wp.request_alt_m();
+            }
         }
     }
 
@@ -435,19 +452,22 @@ class Task {
 
         // Column headings
         let headings_el = document.createElement("tr");
-        let heading1 = document.createElement("th");
+        let heading1 = document.createElement("th"); // WP #
         headings_el.appendChild(heading1);
-        let heading2 = document.createElement("th");
+        let heading2 = document.createElement("th"); // WP name
         headings_el.appendChild(heading2);
-        let heading3 = document.createElement("th");
+        let heading3 = document.createElement("th"); // WP alt
         heading3.innerHTML = altitude_units_str;
         headings_el.appendChild(heading3);
-        let heading4 = document.createElement("th");
-        heading4.innerHTML = "deg(True)";
+        let heading4 = document.createElement("th"); // leg bearing
+        heading4.innerHTML = "deg(T)";
         headings_el.appendChild(heading4);
-        let heading5 = document.createElement("th");
+        let heading5 = document.createElement("th"); // leg distance
         heading5.innerHTML = distance_units_str;
         headings_el.appendChild(heading5);
+        let heading6 = document.createElement("th"); // buttons
+        headings_el.appendChild(heading6);
+
         task_list_el.appendChild(headings_el);
 
         // Add waypoints
@@ -471,12 +491,8 @@ class Task {
 
     display_task_waypoint(task_list_el, wp) {
         let wp_el = document.createElement("tr");
-        wp_el.className = "task_list_wp";
+        wp_el.className = wp.index == this.index ? "task_list_wp_current" : "task_list_wp";
         let parent = this;
-        wp_el.onclick = function () { parent.set_current_wp(wp.index); };
-        if (wp.index == this.index) {
-            wp_el.style.backgroundColor = "yellow";
-        }
 
         // Build elevation string
         let alt_str = wp.alt_m.toFixed(0);
@@ -492,7 +508,9 @@ class Task {
                 dist_str = (wp.leg_distance_m / 1000).toFixed(1);
             }
         }
-        let wp_index_el = document.createElement("td");
+        let wp_index_el = document.createElement("td");             // WP #
+        wp_index_el.className = "task_list_wp_index";
+        wp_index_el.onclick = function () { parent.set_current_wp(wp.index); };
         let index_note = "";
         if (wp.index==this.start_index) {
             index_note = "[St]";
@@ -500,27 +518,108 @@ class Task {
         if (wp.index==this.finish_index) {
             index_note = "[Fin]";
         }
-        wp_index_el.innerHTML = (wp.index+1)+"&nbsp;"+index_note;
+        wp_index_el.innerHTML = index_note; //(wp.index+1)+"&nbsp;"+index_note;
         wp_el.appendChild(wp_index_el);
 
-        let wp_name_el = document.createElement("td");
+        let wp_name_el = document.createElement("td");              // WP name
+        wp_name_el.className = "task_list_wp_name";
+        wp_name_el.onclick = function () { parent.set_current_wp(wp.index); };
         wp_name_el.innerHTML = wp.get_name();
         wp_el.appendChild(wp_name_el);
 
-        let wp_alt_el = document.createElement("td");
+        let wp_alt_el = document.createElement("td");               // WP alt
+        wp_alt_el.onclick = function () { parent.set_current_wp(wp.index); };
         wp_alt_el.innerHTML = alt_str;
         wp_el.appendChild(wp_alt_el);
 
-        let wp_bearing_el = document.createElement("td");
-        wp_bearing_el.className = "task_wp_bearing";
+        let wp_bearing_el = document.createElement("td");           // leg bearing
+        wp_bearing_el.onclick = function () { parent.set_current_wp(wp.index); };
+        wp_bearing_el.className = "task_list_wp_bearing";
         wp_bearing_el.innerHTML = wp.get_leg_bearing();
         wp_el.appendChild(wp_bearing_el);
 
-        let wp_dist_el = document.createElement("td");
+        let wp_dist_el = document.createElement("td");              // leg distance
+        wp_dist_el.onclick = function () { parent.set_current_wp(wp.index); };
         wp_dist_el.innerHTML = dist_str;
         wp_el.appendChild(wp_dist_el);
 
+        let wp_buttons_el = document.createElement("td");           // buttons
+        this.task_list_wp_buttons(wp_buttons_el, wp);
+        wp_el.appendChild(wp_buttons_el);
+
         task_list_el.appendChild(wp_el);
+
+        // Add another row if this WP has limits set
+        if (wp.max_alt_m != null || wp.min_alt_m != null || wp.radius_m != null) {
+            let wp_limits_row_el = document.createElement("tr");
+            let wp_limits_el = document.createElement("td");
+            wp_limits_el.setAttribute("colspan","6");
+            wp_limits_el.className = "task_list_wp_limits";
+
+            let alt_units_str = "m"
+            let alt_scaler = 1;
+            if (this.planner.settings.altitude_units == "feet") {
+                alt_units_str = "ft";
+                alt_scaler = this.planner.M_TO_FEET;
+            }
+
+            let limits_str = "";
+
+            if (wp.max_alt_m != null) {
+                limits_str += "Max alt: "+(wp.max_alt_m * alt_scaler).toFixed(0)+alt_units_str+".";
+            }
+
+            if (wp.min_alt_m != null) {
+                limits_str += " Min alt: "+(wp.min_alt_m * alt_scaler).toFixed(0)+alt_units_str+".";
+            }
+
+            let radius_units_str = "m";
+            let radius_scaler = 1;
+
+            if (this.planner.settings.wp_radius_units == "feet") {
+                radius_units_str = "ft";
+                radius_scaler = this.planner.M_TO_FEET;
+            }
+
+            if (wp.radius_m != null) {
+                limits_str += " Radius: "+(wp.radius_m * radius_scaler).toFixed(0)+radius_units_str+".";
+            }
+
+            wp_limits_el.innerHTML = limits_str;
+            wp_limits_row_el.appendChild(wp_limits_el);
+
+            task_list_el.appendChild(wp_limits_el);
+        }
+    }
+
+    task_list_wp_buttons(buttons_el, wp) {
+        buttons_el.className = "task_list_wp_buttons";
+
+        if (wp.index!=0) {
+            let up_el = document.createElement("div");
+            up_el.className = "task_list_wp_button_up";
+            up_el.addEventListener("click", () => {
+                this.move_wp_up(wp.index);
+            });
+            buttons_el.appendChild(up_el);
+        }
+
+        if (wp.index!=this.waypoints.length-1) {
+            let down_el = document.createElement("div");
+            down_el.className = "task_list_wp_button_down";
+            down_el.addEventListener("click", () => {
+                this.move_wp_down(wp.index);
+            });
+            buttons_el.appendChild(down_el);
+        }
+
+        let delete_el = document.createElement("div");
+        delete_el.className = "task_list_wp_button_delete";
+        delete_el.addEventListener("click", () => {
+            this.remove_wp(wp.index);
+        });
+        buttons_el.appendChild(delete_el);
+
     }
 
     remove_wp_from_task(index) {
@@ -536,8 +635,20 @@ class Task {
         }
         this.remove_marker(wp);
         this.remove_sector(wp);
+
+        // If this WP is the first airport, and the next is also an airport, set the .icao value for the next WP
+        if (index==0 && this.waypoints.length>1 && this.waypoints[index+1].data_icao!=null) {
+            this.waypoints[index+1].icao = this.waypoints[index+1].data_icao;
+        }
+
+        // If this WP is the last airport, and the previous is also an airport, set the .icao value for the previous WP
+        if (index==this.waypoints.length-1 && this.waypoints.length>1 && this.waypoints[index-1].data_icao!=null) {
+            this.waypoints[index-1].icao = this.waypoints[index-1].data_icao;
+        }
+
         // Remove this waypoint from waypoints list
         this.waypoints.splice(index,1);
+        console.log("remove_wp_from_task waypoints.length="+this.waypoints.length);
         // Reset index values in waypoints
         for (let i=0; i<this.waypoints.length; i++) {
             this.waypoints[i].index = i;
@@ -550,6 +661,7 @@ class Task {
     }
 
     remove_wp(index) {
+        console.log("Task.remove_wp("+index+")");
         this.remove_wp_from_task(index);
         this.update_waypoints();
         this.update_waypoint_icons();
@@ -560,7 +672,46 @@ class Task {
         } else {
             this.planner.map.closePopup();
         }
+    }
 
+    move_wp_down(index) {
+        console.log("Task.move_wp_down("+index+")");
+        if (index>=this.waypoints.length-1) { // Cannot move down if already last
+            return;
+        }
+        let wp = this.waypoints[index];
+        let next_wp = this.waypoints[index+1]
+        this.waypoints[index] = next_wp;
+        this.waypoints[index+1] = wp;
+        this.update_waypoints();
+        this.update_waypoint_icons();
+        this.redraw();
+        this.display_task_list();
+        if (this.waypoints.length > 0) {
+            this.current_wp().display_menu();
+        } else {
+            this.planner.map.closePopup();
+        }
+    }
+
+    move_wp_up(index) {
+        console.log("Task.move_wp_up("+index+")");
+        if (index==0) { // Cannot move up if already first
+            return;
+        }
+        let wp = this.waypoints[index];
+        let prev_wp = this.waypoints[index-1]
+        this.waypoints[index] = prev_wp;
+        this.waypoints[index-1] = wp;
+        this.update_waypoints();
+        this.update_waypoint_icons();
+        this.redraw();
+        this.display_task_list();
+        if (this.waypoints.length > 0) {
+            this.current_wp().display_menu();
+        } else {
+            this.planner.map.closePopup();
+        }
     }
 
     set_current_wp(index) {

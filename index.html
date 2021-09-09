@@ -24,18 +24,18 @@
     <link href="style/main.css" rel="stylesheet"/>
 
     <script src="js/b21_geo_static.js"> </script>   <!-- Geo: Defines Geo functions (static) -->
-    <script src="js/b21_track_log.js"> </script>    <!-- TrackLog: Supports GPX files -->
-    <script src="js/b21_wp.js"> </script>           <!-- WP: internal representation of a gliding waypoint -->
-    <script src="js/b21_task.js"> </script>         <!-- Task: internal representation of a gliding task from FlightPlan -->
-    <script src="js/b21_flight_plan.js"> </script>  <!-- FlightPlan: Supports PLN files -->
-    <script src="js/b21_task_planner.js"> </script> <!-- B21TaskPlanner: the main app class -->
+    <script src="js/b21_track_log.js"> </script>    <!-- B21_TrackLog: Supports GPX files -->
+    <script src="js/b21_wp.js"> </script>           <!-- B21_WP: internal representation of a gliding waypoint -->
+    <script src="js/b21_task.js"> </script>         <!-- B21_Task: internal representation of a gliding task from FlightPlan -->
+    <script src="js/b21_flight_plan.js"> </script>  <!-- B21_FlightPlan: Supports PLN files -->
+    <script src="js/b21_task_planner.js"> </script> <!-- B21_TaskPlanner: the main app class -->
 <script>
 
 // This global var will contain an instance of B21TaskPlanner class
 var b21_task_planner;
 
 function loaded() {
-    b21_task_planner = new B21TaskPlanner();
+    b21_task_planner = new B21_TaskPlanner();
     b21_task_planner.init();
 }
 

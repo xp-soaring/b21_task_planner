@@ -2,7 +2,7 @@
 // ***********   TrackLog class            **************************************
 // ******************************************************************************
 
-class TrackLog {
+class B21_TrackLog {
 
     constructor(planner) {
         this.planner = planner;
@@ -146,13 +146,19 @@ class TrackLog {
             //        'Click and drag in the plot area to zoom in' : 'Pinch the chart to zoom in'
             //},
             xAxis: { type: 'datetime' },
-            yAxis: [ {  title: { text: 'Altitude('+alt_units_str+')' },
-                        min: 0,
-                        max: 12000,
+            yAxis: [ {  title: { text: 'Altitude ('+alt_units_str+')' },
+                        //min: 0,
+                        //max: 12000,
                         startOnTick: false,
                         endOnTick: false,
                         tickInterval: 1000 },
-                     { title: { text: 'Speed('+speed_units_str+')' }, min: 50, max: 180, tickInterval: 20, opposite: true }
+                     {  title: { text: 'Speed ('+speed_units_str+')' },
+                        startOnTick: false,
+                        endOnTick: false,
+                        min: 0,
+                        max: 200,
+                        tickInterval: 25,
+                        opposite: true }
                  ],
             legend: { enabled: false },
             tooltip: {
@@ -170,6 +176,7 @@ class TrackLog {
             },
             plotOptions: {
                 series: {
+                    animation: false,
                     cursor: 'pointer',
                     events: {
                         click: function (e) {
