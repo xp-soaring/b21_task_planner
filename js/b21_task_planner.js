@@ -634,6 +634,15 @@ class B21_TaskPlanner {
     click_start(e) {
         let wp = this.task.current_wp();
         if (e.checked) {
+            // See if this WP is an airport (so cannot be start or finish)
+            if (wp.icao!=null) {
+                let alert_str = "You cannot set the departure airport as a soaring task START in a flightplan.";
+                alert_str += " Create another waypoint after this one and set that as start.";
+                alert_str += " See General Hint (1) in help.";
+                alert(alert_str);
+                e.checked = false;
+                return;
+            }
             this.task.start_index = wp.index;
             if (this.task.finish_index != null && this.task.finish_index <= wp.index) {
                 this.task.finish_index = null;
@@ -650,6 +659,15 @@ class B21_TaskPlanner {
     click_finish(e) {
         let wp = this.task.current_wp();
         if (e.checked) {
+            // See if this WP is an airport (so cannot be start or finish)
+            if (wp.icao!=null) {
+                let alert_str = "You cannot set the destination airport as a soaring task FINISH in a flightplan.";
+                alert_str += " Create a waypoint before this and set that as task FINISH.";
+                alert_str += " See General Hint (1) in help.";
+                alert(alert_str);
+                e.checked = false;
+                return;
+            }
             this.task.finish_index = wp.index;
             console.log("Setting finish_index to",this.task.finish_index);
             // Remove start if it is AFTER this finish
@@ -674,7 +692,6 @@ class B21_TaskPlanner {
         this.task.reset();
     }
 
-    //DEBUG implement flightplan download
     download() {
         console.log("download()");
         try {
@@ -705,6 +722,65 @@ class B21_TaskPlanner {
         document.getElementById("tab_task").className = "tab_inactive";
         document.getElementById("tab_tracklogs").className = "tab_active";
     }
+
+    // User has typed in search box
+    //DEBUG pan the map to the clicked airport result, and highlight that airport
+    search(e) {
+        const RESULTS_MAX = 100;
+        let results_el = document.getElementById("search_results");
+        results_el.style.display = "none";
+        let search_input_el = document.getElementById("search_input");
+        let search_value = search_input_el.value.toLowerCase();
+        console.log("search",search_input.value);
+        if (!this.airports_available) {
+            return;
+        }
+        if (search_value.length < 3) {
+            return;
+        }
+        const TYPE = this.airports_data.airport_keys['type']; //"closed_airport", "heliport", "large_airport", "medium_airport", "seaplane_base", "small_airport"
+        const NAME = this.airports_data.airport_keys['name'];
+        const IDENT = this.airports_data.airport_keys['ident'];
+        let results = [];
+        for (let box_id in this.airports_data.box_coords) {
+            let airports = this.airports_data.boxes[box_id];
+            for (let i=0; i<airports.length; i++) {
+                let airport = airports[i];
+                let type = airport[TYPE];
+                if (type.includes("airport")) {
+                    let ident = airport[IDENT];
+                    let name = airport[NAME].replaceAll('"',""); // Remove double quotes if original name includes those.
+                    if ((ident+name).toLowerCase().includes(search_value)) {
+                        results.push(airport);
+                        if (results.length > RESULTS_MAX) {
+                            break;
+                        }
+                    }
+                }
+            }
+            if (results.length > RESULTS_MAX) {
+                break;
+            }
+        }
+        if (results.length>0) {
+            while (results_el.firstChild) {
+                results_el.removeChild(results_el.lastChild);
+            }
+            results_el.style.display = "block";
+            for (let i=0;i<results.length;i++) {
+                let airport = results[i];
+                let result_el = document.createElement("div");
+                result_el.className = "search_result";
+                result_el.onclick = (e) => {
+                    console.log("result "+i+" clicked", airport);
+                }
+                result_el.innerHTML = (airport[IDENT]+" "+airport[NAME]).replaceAll(" ","&nbsp;");
+                results_el.appendChild(result_el);
+            }
+        }
+        console.log("Search results", results.length);
+    }
+
 
 // ********************************************************************************************
 // *********  Settings                                 ****************************************
