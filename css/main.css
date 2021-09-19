@@ -88,8 +88,12 @@ a {
     background-color: yellow;
 }
 
+/* ******************************************* */
+/* ******   PANES           ****************** */
+/* ******************************************* */
+
 #panes {
-    height: 90%;
+    height: calc(100% - 80px);
     position: relative;
     display: flex;
 }
@@ -123,11 +127,11 @@ a {
 }
 
 #right_pane {
-    width: 78%;
     height: 100%; /* 100% or 75% depending on whether the baro is displayed */
     display: flex;
     flex-direction: column;
     flex: 1 1 0;
+    margin-right: 8px;
 }
 
 #map {

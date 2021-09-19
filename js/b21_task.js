@@ -736,6 +736,48 @@ class B21_Task {
         this.display_task_list();
     }
 
+    // *******************************************
+    // Tracklog Sector calculations
+    // Using position as { "lat": , "lng", "alt_m" }
+    // *******************************************
+
+    // Return { "start": true|false, "ts": seconds timestamp of start }
+    is_start(p1, p2) {
+        if (this.start_index==null) {
+            console.log("Task.is_start false start_index is null");
+            return false;
+        }
+        if (this.start_index > this.waypoints.length - 2) {
+            console.log("Task.is_start false no leg after start");
+            return false;
+        }
+
+        let leg_bearing_deg = this.waypoints[this.start_index+1].leg_bearing_deg;
+        console.log("Task.is_start() leg_bearing_deg="+leg_bearing_deg);
+        return this.waypoints[this.start_index].is_start(p1,p2,leg_bearing_deg);
+    }
+
+    // Return { "finish": true|false, "ts": seconds timestamp of finish }
+    is_finish(p1, p2) {
+        if (this.finish_index==null) {
+            return false;
+        }
+        return this.waypoints[this.finish_index].is_finish(p1,p2);
+    }
+
+    // Return { "wp": true|false, "ts": seconds timestamp of wp }
+    is_wp(wp_index,p1,p2) {
+        if (this.start_index==null || wp_index <= this.start_index ||
+            this.finish_index==null || wp_index >= this.finish_index || wp_index >= this.waypoints.length) {
+                return false;
+        }
+        return this.waypoints[wp_index].is_wp(p1,p2);
+    }
+
+    // *******************************************
+    // General - convert class instance to string
+    // *******************************************
+
     toString() {
         let str = "[";
         for (let i=0;i<this.waypoints.length;i++) {
