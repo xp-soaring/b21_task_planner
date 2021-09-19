@@ -6,7 +6,7 @@ class B21_TrackLog {
 
     constructor(planner) {
         this.planner = planner;
-        this.logpoints = [];
+        this.logpoints = []; // { lat: lng: alt_m: ts: time_iso: }
         this.name = null;
         this.filename = null;
         this.barograph = false; // Is baro chart displayed
@@ -279,5 +279,54 @@ class B21_TrackLog {
         point_speed = chart.renderer.label("",10,40).add();
 
     } // end draw_baro()
+
+    // Calculate the Task start/finish times etc. for this TrackLog
+    score_task() {
+        let task = this.planner.task;
+        if (task == null || task.start_index==null || task.finish_index==null) {
+            console.log("TrackLog score task: no good task");
+            return;
+        }
+
+        let status = "PRE-START"; // "PRE-START", "STARTED", "WAYPOINTS", "FINISHED"
+
+        let p1 = this.logpoints[0];
+
+        let wp_index = task.start_index + 1;
+
+        for (let i=1; i<this.logpoints.length; i++) {
+            let p2 = this.logpoints[i];
+            let time_str = (new Date(p2.time_iso)).toTimeString().split(' ')[0];
+            console.log("TrackLog.score_task()["+i+"] at "+time_str,p2);
+
+            if (status=="PRE-START" || "STARTED") {
+                if (task.is_start(p1,p2)) {
+                    let start_time_str = (new Date(p1.time_iso)).toTimeString().split(' ')[0];
+                    console.log("TrackLog: started["+i+"] at "+start_time_str);
+                    status = "STARTED";
+                }
+            }
+
+            if ((status=="STARTED" || status=="WAYPOINTS") && wp_index != task.finish_index) {
+                if (task.is_wp(wp_index,p1,p2)) {
+                    let wp_time_str = (new Date(p2.time_iso)).toTimeString().split(' ')[0];
+                    console.log("TrackLog: WP["+wp_index+"] logpoints["+i+"] at "+wp_time_str);
+                    status = "WAYPOINTS";
+                    wp_index += 1;
+                }
+            } else {
+                if (task.is_finish(p1,p2)) {
+                    let finish_time_str = (new Date(p2.time_iso)).toTimeString().split(' ')[0];
+                    console.log("TrackLog: Finish WP["+wp_index+"] logpoints["+i+"] at "+finish_time_str);
+                    status = "FINISHED";
+                    break;
+                }
+            }
+            p1 = p2;
+        }
+        if (status != "FINISHED") {
+            console.log("Task not finished, status="+status+", wp_index="+wp_index);
+        }
+    }
 
 } // End class TrackLog

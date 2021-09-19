@@ -753,7 +753,7 @@ class B21_Task {
         }
 
         let leg_bearing_deg = this.waypoints[this.start_index+1].leg_bearing_deg;
-        console.log("Task.is_start() leg_bearing_deg="+leg_bearing_deg);
+        //console.log("Task.is_start() leg_bearing_deg="+leg_bearing_deg);
         return this.waypoints[this.start_index].is_start(p1,p2,leg_bearing_deg);
     }
 

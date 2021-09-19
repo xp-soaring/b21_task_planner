@@ -329,7 +329,7 @@ class B21_WP {
 
     // is_start(p1, p2, leg_bearing) returns true if p1->p2 crosses the start line
     is_start(p1,p2,leg_bearing_deg) {
-        console.log("WP.is_start()");
+        //console.log("WP.is_start()");
 
         // Check p1 is in start sector
         if (this.max_alt_m != null && p1.alt_m > this.max_alt_m) {
@@ -367,7 +367,7 @@ class B21_WP {
     }
 
     is_finish(p1,p2) {
-        console.log("wp is_finish");
+        //console.log("wp is_finish");
 
         // check p1 is before finish sector
         let wp_bearing_deg = Geo.get_bearing_deg(p1, this.position);
@@ -411,10 +411,11 @@ class B21_WP {
     }
 
     is_wp(p1,p2) {
-        console.log("wp is_wp");
         if (!this.in_wp_sector(p1) && this.in_wp_sector(p2)) {
+            console.log("wp is_wp() true");
             return true;
         }
+        console.log("wp is_wp() false");
         return false;
     }
 
