@@ -340,7 +340,7 @@ class B21_TaskPlanner {
     // ********************************************************************************************
 
     handle_gpx_str(file_str, name) {
-        console.log("loading tracklogs["+this.tracklogs.length+"]", name);
+        console.log("loading tracklogs[" + this.tracklogs.length + "]", name);
         let tracklog = new B21_TrackLog(this.tracklogs.length, this, this.map);
         this.tracklogs.push(tracklog);
         tracklog.load_gpx(file_str, name);
@@ -348,7 +348,7 @@ class B21_TaskPlanner {
         // zoom the map to the polyline
         this.map.fitBounds(tracklog.polyline.getBounds());
         // If this is the 1st time we're drawing the chart, adjust size of map
-        if (this.tracklogs.length==1) {
+        if (this.tracklogs.length == 1) {
             let map_el = document.getElementById("map");
             map_el.style.height = "75%";
             this.charts_el.style.display = "block";
@@ -361,7 +361,7 @@ class B21_TaskPlanner {
         chart_el.className = "chart";
         this.charts_el.appendChild(chart_el);
         tracklog.draw_chart(chart_el);
-        if (this.task!=null) {
+        if (this.task != null) {
             tracklog.score_task();
         }
     }
@@ -483,13 +483,13 @@ class B21_TaskPlanner {
     change_wp_name(new_name) {
         console.log("new wp name = ", new_name);
         this.task.current_wp().set_name(new_name);
-        this.task.display_task_list();
+        this.task.display_task_info();
     }
 
     change_wp_icao(new_icao) {
         console.log("new wp icao = ", new_icao);
         this.task.current_wp().set_icao(new_icao);
-        this.task.display_task_list();
+        this.task.display_task_info();
     }
 
     change_wp_runway(runway) {
@@ -509,7 +509,7 @@ class B21_TaskPlanner {
         let wp = this.task.current_wp();
         wp.alt_m = parseFloat(new_alt) / (this.settings.altitude_units == "m" ? 1 : this.M_TO_FEET);
         wp.alt_m_updated = true;
-        this.task.display_task_list();
+        this.task.display_task_info();
     }
 
     change_wp_radius(radius_str) {
@@ -522,7 +522,7 @@ class B21_TaskPlanner {
             wp.set_radius(radius_m);
         }
         this.task.redraw();
-        this.task.display_task_list();
+        this.task.display_task_info();
     }
 
     change_wp_max_alt(new_alt) {
@@ -532,7 +532,7 @@ class B21_TaskPlanner {
         if (isNaN(wp.max_alt_m) || wp.max_alt_m == 0) {
             wp.max_alt_m = null;
         }
-        this.task.display_task_list();
+        this.task.display_task_info();
     }
 
     change_wp_min_alt(new_alt) {
@@ -542,7 +542,7 @@ class B21_TaskPlanner {
         if (isNaN(wp.min_alt_m) || wp.min_alt_m == 0) {
             wp.min_alt_m = null;
         }
-        this.task.display_task_list();
+        this.task.display_task_info();
     }
 
     remove_wp_from_task() {
@@ -583,7 +583,7 @@ class B21_TaskPlanner {
         this.task.update_waypoint_icons();
         wp.display_menu();
         this.task.redraw();
-        this.task.display_task_list();
+        this.task.display_task_info();
     }
 
     click_finish(e) {
@@ -610,7 +610,7 @@ class B21_TaskPlanner {
         this.task.update_waypoint_icons();
         wp.display_menu();
         this.task.redraw();
-        this.task.display_task_list();
+        this.task.display_task_info();
     }
 
     // ********************************************************************************************
@@ -778,7 +778,7 @@ class B21_TaskPlanner {
                     parent.unset_setting(var_name);
                     parent.select(e.target);
                     parent.set_setting(var_name, option_name);
-                    parent.task.display_task_list();
+                    parent.task.display_task_info();
                 });
                 setting_option_el.innerHTML = "Option: " + option_name;
                 if (this.settings[var_name] == option_name) {
@@ -802,22 +802,22 @@ class B21_TaskPlanner {
 
     set_altitude_units_m() {
         this.set_setting("altitude_units", "m");
-        this.task.display_task_list();
+        this.task.display_task_info();
     }
 
     set_altitude_units_feet() {
         this.set_setting("altitude_units", "feet");
-        this.task.display_task_list();
+        this.task.display_task_info();
     }
 
     set_speed_units_kph() {
         this.set_setting("speed_units", "kph");
-        this.task.display_task_list();
+        this.task.display_task_info();
     }
 
     set_speed_units_knots() {
         this.set_setting("speed_units", "knots");
-        this.task.display_task_list();
+        this.task.display_task_info();
     }
 
     select(el) {

@@ -124,18 +124,16 @@ a {
 }
 
 .tab_active {
-    border-bottom: 4px solid blue;
-    border-right: 2px solid blue;
     padding-left: 10px;
     padding-right: 10px;
     margin: 0;
 }
 
 .tab_inactive {
-    border-right: 1px solid blue;
     padding-left: 10px;
     padding-right: 10px;
     margin: 0;
+    background-color: #999999;
 }
 
 /* *************************************************** */
@@ -238,33 +236,33 @@ a {
 /* ******* Task list elements    ********************* */
 /* *************************************************** */
 
-#task_list {
+#task_info {
     cursor: pointer;
     font-size: 16px;
     width: 100%;
     border-collapse: collapse;
 }
 
-.task_list_wp {
+.task_info_wp {
     border-top: 2px solid black;
     height: 36px;
 }
 
-.task_list_wp:hover {
+.task_info_wp:hover {
     background-color: #cccc88;
 }
 
-.task_list_wp_current {
+.task_info_wp_current {
     border: 4px solid yellow;
     background-color: yellow;
     height: 36px;
 }
 
-.task_list_wp:hover {
+.task_info_wp:hover {
     background-color: #cccc88;
 }
 
-.task_list_wp_index {
+.task_info_wp_index {
     text-align: left;
     font-size: 12px;
     background-color: #e6ffff;
@@ -272,50 +270,50 @@ a {
     white-space: nowrap;
 }
 
-.task_list_wp_name {
+.task_info_wp_name {
     text-align: left;
     background-color: #e6ffff;
 }
 
-.task_list_wp_bearing {
+.task_info_wp_bearing {
     padding-right: 15px;
 }
 
 
-.task_list_wp_buttons {
+.task_info_wp_buttons {
     width: 80px;
 }
 
-.task_list_wp_buttons div:hover { /* highlight buttons in red */
+.task_info_wp_buttons div:hover { /* highlight buttons in red */
     border: 2px solid red;
 }
 
-.task_list_wp_button_up {
+.task_info_wp_button_up {
     display: inline-block;
     width: 25px;
     height: 30px;
     background-image: url("../images/arrow_up.png");
 }
 
-.task_list_wp_button_down {
+.task_info_wp_button_down {
     display: inline-block;
     width: 25px;
     height: 30px;
     background-image: url("../images/arrow_down.png");
 }
 
-.task_list_wp_button_delete {
+.task_info_wp_button_delete {
     display: inline-block;
     width: 25px;
     height: 30px;
     background-image: url("../images/delete.png");
 }
 
-.task_list_wp_limits {
+.task_info_wp_limits {
     font-size: 14px;
 }
 
-#task_list_distance {
+#task_info_distance {
     text-align: right;
     font-size: 24px;
     background-color: #d0d0d0;
