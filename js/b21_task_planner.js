@@ -12,7 +12,15 @@ class B21_TaskPlanner {
     init() {
         let parent = this;
 
-        this.sv_button = document.getElementById("skyvector_button"); // So we can update action URL
+        this.skyvector_button_el = document.getElementById("skyvector_button"); // So we can update action URL
+
+        this.charts_el = document.getElementById("charts");
+
+        this.left_pane_tabs_el = document.getElementById("left_pane_tabs");
+
+        this.tracklogs = []; // Loaded tracklogs
+
+        this.has_chart = false; // No chart is currently displayed (so Map can be full height)
 
         this.init_settings();
 
@@ -332,14 +340,30 @@ class B21_TaskPlanner {
     // ********************************************************************************************
 
     handle_gpx_str(file_str, name) {
-        console.log("handle_gpx_str", name);
-        this.track_log = new B21_TrackLog(this);
-        this.track_log.load_gpx(file_str, name);
-        this.track_log.draw(this.map);
+        console.log("loading tracklogs["+this.tracklogs.length+"]", name);
+        let tracklog = new B21_TrackLog(this.tracklogs.length, this, this.map);
+        this.tracklogs.push(tracklog);
+        tracklog.load_gpx(file_str, name);
+        tracklog.draw_map();
         // zoom the map to the polyline
-        this.map.fitBounds(this.track_log.polyline.getBounds());
+        this.map.fitBounds(tracklog.polyline.getBounds());
+        // If this is the 1st time we're drawing the chart, adjust size of map
+        if (this.tracklogs.length==1) {
+            let map_el = document.getElementById("map");
+            map_el.style.height = "75%";
+            this.charts_el.style.display = "block";
+            this.map.invalidateSize();
 
-        this.track_log.draw_baro();
+            this.left_pane_tabs_el.style.display = 'block';
+        }
+
+        let chart_el = document.createElement("div");
+        chart_el.className = "chart";
+        this.charts_el.appendChild(chart_el);
+        tracklog.draw_chart(chart_el);
+        if (this.task!=null) {
+            tracklog.score_task();
+        }
     }
 
     // ********************************************************************************************
@@ -397,7 +421,7 @@ class B21_TaskPlanner {
         sv_link = sv_link.replace("#LNG#", center.lng.toFixed(8));
         sv_link = sv_link.replace("#ZOOM#", sv_zoom.toFixed(0));
 
-        this.sv_button.setAttribute("href", sv_link);
+        this.skyvector_button_el.setAttribute("href", sv_link);
     }
 
 
@@ -625,14 +649,25 @@ class B21_TaskPlanner {
         ]);
     }
 
+    // Show task info
     tab_task() {
         document.getElementById("tab_task").className = "tab_active";
         document.getElementById("tab_tracklogs").className = "tab_inactive";
+        document.getElementById("tab_tracklog").className = "tab_inactive";
     }
 
+    // Show list of tracklogs
     tab_tracklogs() {
         document.getElementById("tab_task").className = "tab_inactive";
         document.getElementById("tab_tracklogs").className = "tab_active";
+        document.getElementById("tab_tracklog").className = "tab_inactive";
+    }
+
+    // Show single tracklog info
+    tab_tracklog() {
+        document.getElementById("tab_task").className = "tab_inactive";
+        document.getElementById("tab_tracklogs").className = "tab_inactive";
+        document.getElementById("tab_tracklog").className = "tab_active";
     }
 
     // User has typed in search box

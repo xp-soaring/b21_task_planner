@@ -114,6 +114,34 @@ a {
     text-align: right;
 }
 
+/* *************************************************** */
+/* ******* Tabs                  ********************* */
+/* *************************************************** */
+
+#left_pane_tabs {
+    display: none; /* will enable when GPX is loaded */
+    font-size: 16px;
+}
+
+.tab_active {
+    border-bottom: 4px solid blue;
+    border-right: 2px solid blue;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin: 0;
+}
+
+.tab_inactive {
+    border-right: 1px solid blue;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin: 0;
+}
+
+/* *************************************************** */
+/* ******* Drop Zone             ********************* */
+/* *************************************************** */
+
 #drop_zone {
     width: 80%;
     /* min-height: 25%;*/
@@ -138,12 +166,17 @@ a {
     height: 100%;
 }
 
-#barograph {
+#charts {
     width: 100%;
     height: 25%;
     margin-top: 3px;
     background-color: #aaaaaa;
     display: none;
+}
+
+.chart {
+    width: 100%;
+    height: 100%;
 }
 
 .menu {
@@ -348,28 +381,4 @@ a {
 
 #skyvector_button {
     text-decoration: none;
-}
-
-/* *************************************************** */
-/* ******* Tabs                  ********************* */
-/* *************************************************** */
-
-#left_pane_tabs {
-    display: none; /* will enable when GPX is loaded */
-    font-size: 22px;
-}
-
-.tab_active {
-    border-bottom: 4px solid blue;
-    border-right: 2px solid blue;
-    padding-left: 10px;
-    padding-right: 10px;
-    margin: 0;
-}
-
-.tab_inactive {
-    border-right: 1px solid blue;
-    padding-left: 10px;
-    padding-right: 10px;
-    margin: 0;
 }

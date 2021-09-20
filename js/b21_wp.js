@@ -333,24 +333,24 @@ class B21_WP {
 
         // Check p1 is in start sector
         if (this.max_alt_m != null && p1.alt_m > this.max_alt_m) {
-            console.log("WP.is_start() false p1 max_alt_m="+this.max_alt_m+" vs "+p1.alt_m);
+            //console.log("WP.is_start() false p1 max_alt_m="+this.max_alt_m+" vs "+p1.alt_m);
             return false;
         }
         if (this.min_alt_m != null && p1.alt_m < this.min_alt_m) {
-            console.log("WP.is_start() false p1 min_alt_m="+this.min_alt_m+" vs "+p1.alt_m);
+            //console.log("WP.is_start() false p1 min_alt_m="+this.min_alt_m+" vs "+p1.alt_m);
             return false;
         }
 
         let radius_m = this.radius_m==null ? this.RADIUS_DEFAULT_M : this.radius_m;
         let distance_m = Geo.get_distance_m(p1, this.position);
         if (distance_m > radius_m) {
-            console.log("WP.is_start() false radius_m="+radius_m.toFixed(0)+" vs "+distance_m.toFixed(0));
+            //console.log("WP.is_start() false radius_m="+radius_m.toFixed(0)+" vs "+distance_m.toFixed(0));
             return false;
         }
         let wp_bearing_deg = Geo.get_bearing_deg(p1, this.position);
         let in_sector = Geo.in_sector(leg_bearing_deg, wp_bearing_deg, 180); // Check p1 within start sector angles
         if (!in_sector) {
-            console.log("WP.is_start() false p1 at "+wp_bearing_deg.toFixed(0)+" deg not in start sector");
+            //console.log("WP.is_start() false p1 at "+wp_bearing_deg.toFixed(0)+" deg not in start sector");
             return false;
         }
         // OK so p1 is in the start sector, now we need to see if p1->p2 crosses the start line
@@ -361,7 +361,7 @@ class B21_WP {
         if (over_start_line) {
             console.log("WP.is_start true at "+wp_bearing_deg.toFixed(0));
         } else {
-            console.log("WP.is_start false at "+wp_bearing_deg.toFixed(0));
+            //console.log("WP.is_start false at "+wp_bearing_deg.toFixed(0));
         }
         return over_start_line;
     }
@@ -373,27 +373,27 @@ class B21_WP {
         let wp_bearing_deg = Geo.get_bearing_deg(p1, this.position);
         let before_finish_line = Geo.in_sector(this.leg_bearing_deg, wp_bearing_deg, 180);
         if (before_finish_line) {
-            console.log("WP.is_finish p1 before_finish_line=true at "+wp_bearing_deg.toFixed(0));
+            //console.log("WP.is_finish p1 before_finish_line=true at "+wp_bearing_deg.toFixed(0));
         } else {
-            console.log("WP.is_finish p1 before_finish_line=false at "+wp_bearing_deg.toFixed(0));
+            //console.log("WP.is_finish p1 before_finish_line=false at "+wp_bearing_deg.toFixed(0));
             return false;
         }
         // p1 is before finish
 
         // Check p2 is in finish sector
         if (this.max_alt_m != null && p2.alt_m > this.max_alt_m) {
-            console.log("WP.is_finish() false p2 max_alt_m="+this.max_alt_m+" vs "+p2.alt_m);
+            //console.log("WP.is_finish() false p2 max_alt_m="+this.max_alt_m+" vs "+p2.alt_m);
             return false;
         }
         if (this.min_alt_m != null && p2.alt_m < this.min_alt_m) {
-            console.log("WP.is_finish() false p2 min_alt_m="+this.min_alt_m+" vs "+p2.alt_m);
+            //console.log("WP.is_finish() false p2 min_alt_m="+this.min_alt_m+" vs "+p2.alt_m);
             return false;
         }
 
         let radius_m = this.radius_m==null ? this.RADIUS_DEFAULT_M : this.radius_m;
         let distance_m = Geo.get_distance_m(p2, this.position);
         if (distance_m > radius_m) {
-            console.log("WP.is_finish() false p2 radius_m="+radius_m.toFixed(0)+" vs "+distance_m.toFixed(0));
+            //console.log("WP.is_finish() false p2 radius_m="+radius_m.toFixed(0)+" vs "+distance_m.toFixed(0));
             return false;
         }
 
@@ -401,7 +401,7 @@ class B21_WP {
         wp_bearing_deg = Geo.get_bearing_deg(p2, this.position);
         let p2_in_sector = Geo.in_sector(reverse_bearing_deg, wp_bearing_deg, 180); // Check p2 within finish sector angles
         if (!p2_in_sector) {
-            console.log("WP.is_finish() false p2 at "+wp_bearing_deg.toFixed(0)+" deg not in finish sector");
+            //console.log("WP.is_finish() false p2 at "+wp_bearing_deg.toFixed(0)+" deg not in finish sector");
             return false;
         }
 
@@ -415,24 +415,24 @@ class B21_WP {
             console.log("wp is_wp() true");
             return true;
         }
-        console.log("wp is_wp() false");
+        //console.log("wp is_wp() false");
         return false;
     }
 
     in_wp_sector(p) {
-        console.log("in_wp_sector");
+        //console.log("in_wp_sector");
         if (this.max_alt_m != null && p.alt_m > this.max_alt_m) {
-            console.log("in_wp_sector false max_alt_m="+this.max_alt_m+" vs "+p.alt_m);
+            //console.log("in_wp_sector false max_alt_m="+this.max_alt_m+" vs "+p.alt_m);
             return false;
         }
         if (this.min_alt_m != null && p.alt_m < this.min_alt_m) {
-            console.log("in_wp_sector false min_alt_m="+this.min_alt_m+" vs "+p.alt_m);
+            //console.log("in_wp_sector false min_alt_m="+this.min_alt_m+" vs "+p.alt_m);
             return false;
         }
         let radius_m = this.radius_m==null ? this.RADIUS_DEFAULT_M : this.radius_m;
         let distance_m = Geo.get_distance_m(p, this.position);
         let in_sector = distance_m < radius_m;
-        console.log("in_wp_sector "+in_sector+" radius_m="+radius_m+" vs "+distance_m.toFixed(1));
+        //console.log("in_wp_sector "+in_sector+" radius_m="+radius_m+" vs "+distance_m.toFixed(1));
         return in_sector;
     }
 

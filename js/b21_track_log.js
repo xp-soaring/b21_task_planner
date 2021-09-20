@@ -4,12 +4,14 @@
 
 class B21_TrackLog {
 
-    constructor(planner) {
+    constructor(index, planner, map) {
+        this.index = index;     // Index of this tracklog in planner.tracklogs[]
         this.planner = planner;
-        this.logpoints = []; // { lat: lng: alt_m: ts: time_iso: }
+        this.map = map;
+        this.chart = null;      // Will hold reference to highcharts chart.
+        this.logpoints = [];    // { lat: lng: alt_m: ts: time_iso: }
         this.name = null;
         this.filename = null;
-        this.barograph = false; // Is baro chart displayed
     }
 
     get_name() {
@@ -99,10 +101,10 @@ class B21_TrackLog {
     }
 
     // Draw the polyline for this tracklog on the map
-    draw(map) {
+    draw_map() {
         let coords = this.logpoints.map(p => [p.lat.toFixed(6), p.lng.toFixed(6)]);
 
-        this.polyline = L.polyline(coords, { weight: 4, color: 'darkred' }).addTo(map);
+        this.polyline = L.polyline(coords, { weight: 4, color: 'darkred' }).addTo(this.map);
     }
 
     chart_selected(parent, e) {
@@ -115,17 +117,8 @@ class B21_TrackLog {
     }
 
     // Use Highcharts to draw a time/altitude plot
-    draw_baro() {
+    draw_chart(chart_el) {
         let parent = this;
-        let el = document.getElementById("barograph");
-        // If this is the 1st time we're drawing the chart, adjust size of map
-        if (!this.barograph) {
-            let map_el = document.getElementById("map");
-            map_el.style.height = "75%";
-            el.style.display = "block";
-            this.barograph = true;
-            this.planner.map.invalidateSize();
-        }
 
         // make string units value and scaler for Altitudes
         let alt_scaler = 1;
@@ -156,7 +149,7 @@ class B21_TrackLog {
         let point_speed;
 
         // Draw chart
-        let chart = new Highcharts.chart('barograph', {
+        this.chart = new Highcharts.chart(chart_el, {
             chart: { zoomType: 'x',
                     events: {
                         selection: function (e) {
@@ -184,7 +177,7 @@ class B21_TrackLog {
             //},
             xAxis: { type: 'datetime' },
             yAxis: [ {  title: { text: 'Altitude ('+alt_units_str+')' },
-                        //min: 0,
+                        min: 0,
                         //max: 12000,
                         //startOnTick: false,
                         //endOnTick: false,
@@ -267,17 +260,16 @@ class B21_TrackLog {
                       { yAxis: 1, type: 'line', name: "Speed", data: speed_points }]
         });
 
-        selection_rect = chart.renderer.rect(0,0,0,0,0).css({
+        selection_rect = this.chart.renderer.rect(0,0,0,0,0).css({
                             stroke: 'black',
                             strokeWidth: '.5',
                             fill: 'black',
                             fillOpacity: '.1'
                         }).add();
 
-        point_time = chart.renderer.label("Move mouse over chart to see data here.",10,10).add();
-        point_altitude = chart.renderer.label("",10,25).add();
-        point_speed = chart.renderer.label("",10,40).add();
-
+        point_time = this.chart.renderer.label("Move mouse over chart to see data here.",10,10).add();
+        point_altitude = this.chart.renderer.label("",10,25).add();
+        point_speed = this.chart.renderer.label("",10,40).add();
     } // end draw_baro()
 
     // Calculate the Task start/finish times etc. for this TrackLog
@@ -297,12 +289,21 @@ class B21_TrackLog {
         for (let i=1; i<this.logpoints.length; i++) {
             let p2 = this.logpoints[i];
             let time_str = (new Date(p2.time_iso)).toTimeString().split(' ')[0];
-            console.log("TrackLog.score_task()["+i+"] at "+time_str,p2);
+            console.log("TrackLog.score_task()["+i+"] at "+time_str,p2, status);
 
             if (status=="PRE-START" || "STARTED") {
                 if (task.is_start(p1,p2)) {
                     let start_time_str = (new Date(p1.time_iso)).toTimeString().split(' ')[0];
                     console.log("TrackLog: started["+i+"] at "+start_time_str);
+
+                    this.chart.xAxis[0].addPlotLine( {
+                        id: "START",
+                        width: 2,
+                        value: new Date(p1.time_iso),
+                        color: 'green',
+                        dashStyle: 'Solid',
+                        label: { text: 'Start' }
+                    });
                     status = "STARTED";
                 }
             }
@@ -311,6 +312,15 @@ class B21_TrackLog {
                 if (task.is_wp(wp_index,p1,p2)) {
                     let wp_time_str = (new Date(p2.time_iso)).toTimeString().split(' ')[0];
                     console.log("TrackLog: WP["+wp_index+"] logpoints["+i+"] at "+wp_time_str);
+                    let wp_name = task.waypoints[wp_index].name;
+                    this.chart.xAxis[0].addPlotLine( {
+                        id: "WP"+wp_index,
+                        width: 1,
+                        value: new Date(p1.time_iso),
+                        color: 'green',
+                        dashStyle: 'Solid',
+                        label: { text: wp_name }
+                    });
                     status = "WAYPOINTS";
                     wp_index += 1;
                 }
@@ -318,6 +328,14 @@ class B21_TrackLog {
                 if (task.is_finish(p1,p2)) {
                     let finish_time_str = (new Date(p2.time_iso)).toTimeString().split(' ')[0];
                     console.log("TrackLog: Finish WP["+wp_index+"] logpoints["+i+"] at "+finish_time_str);
+                    this.chart.xAxis[0].addPlotLine( {
+                        id: "FINISH",
+                        width: 2,
+                        value: new Date(p1.time_iso),
+                        color: 'green',
+                        dashStyle: 'Solid',
+                        label: { text: 'Finish' }
+                    });
                     status = "FINISHED";
                     break;
                 }
