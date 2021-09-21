@@ -12,10 +12,15 @@ class B21_TrackLog {
         this.logpoints = []; // { lat: lng: alt_m: ts: time_iso: }
         this.name = null;
         this.filename = null;
+        this.tracklog_info_el = document.getElementById("tracklog_info");
     }
 
     get_name() {
         return this.name == null ? "" : this.name;
+    }
+
+    get_filename() {
+        return this.filename == null ? "" : this.filename;
     }
 
     load_gpx(file_str, filename) {
@@ -158,14 +163,14 @@ class B21_TrackLog {
                     events: {
                         selection: function(e) {
                             // Update highlight rectangle
-                            var xMin = chart.xAxis[0].translate((e.xAxis[0] || chart.xAxis[0]).min),
-                                xMax = chart.xAxis[0].translate((e.xAxis[0] || chart.xAxis[0]).max),
-                                yMin = chart.yAxis[0].translate((e.yAxis[0] || chart.yAxis[0]).min),
-                                yMax = chart.yAxis[0].translate((e.yAxis[0] || chart.yAxis[0]).max);
+                            var xMin = parent.chart.xAxis[0].translate((e.xAxis[0] || parent.chart.xAxis[0]).min),
+                                xMax = parent.chart.xAxis[0].translate((e.xAxis[0] || parent.chart.xAxis[0]).max),
+                                yMin = parent.chart.yAxis[0].translate((e.yAxis[0] || parent.chart.yAxis[0]).min),
+                                yMax = parent.chart.yAxis[0].translate((e.yAxis[0] || parent.chart.yAxis[0]).max);
 
                             selection_rect.attr({
-                                x: xMin + chart.plotLeft,
-                                y: chart.plotHeight + chart.plotTop - yMax,
+                                x: xMin + parent.chart.plotLeft,
+                                y: parent.chart.plotHeight + parent.chart.plotTop - yMax,
                                 width: xMax - xMin,
                                 height: yMax - yMin
                             });
@@ -402,4 +407,9 @@ class B21_TrackLog {
         }
     }
 
+    //DEBUG write TrackLog.display_info
+    display_info() {
+        this.tracklog_info_el.innerHTML = "TRACKLOG "+this.get_filename();
+    }
+    
 } // End class TrackLog
