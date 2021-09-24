@@ -8,11 +8,23 @@ class B21_TrackLog {
         this.index = index; // Index of this tracklog in planner.tracklogs[]
         this.planner = planner;
         this.map = map;
-        this.chart = null; // Will hold reference to highcharts chart.
+        this.polyline = null; // The line drawn on the map for this TrackLog
+        this.chart = null; // The reference to the highcharts chart.
+        this.current_plotline == null; // plotLine cursor for the currently selected plot point
+        // Track Log file data
         this.logpoints = []; // { lat: lng: alt_m: ts: time_iso: }
         this.name = null;
         this.filename = null;
+        // Scoring data for this tracklog over task
+        this.scoring_data = null;
+        // HTML elements updated by TrackLog
+        this.chart_el = document.getElementById("chart");
         this.tracklog_info_el = document.getElementById("tracklog_info");
+        this.tracklog_info_task_el = document.getElementById("tracklog_info_task");
+        this.tracklog_info_segment_el = document.getElementById("tracklog_info_segment");
+        this.tracklog_info_point_el = document.getElementById("tracklog_info_point");
+
+        this.current_logpoint_index = null; // Currently selected logpoint
     }
 
     get_name() {
@@ -124,9 +136,53 @@ class B21_TrackLog {
         return false;
     }
 
+    // Find index of tracklog point with nearest timestamp (in seconds)
+    ts_to_logpoint_index(ts) {
+        let min_delta = null;
+        let index = null;
+        for (let i=0; i<this.logpoints.length; i++) { // We could do this much more efficiently with a binary split
+            let delta = Math.abs(this.logpoints[i].ts - ts);
+            if (min_delta == null || delta < min_delta) {
+                min_delta = delta;
+                index = i;
+            }
+        }
+        return index;
+    }
+
+    set_current_logpoint_index(i) {
+        this.current_logpoint_index = i;
+        if (this.current_logpoint_index < 0) {
+            this.current_logpoint_index = 0;
+        }
+        if (this.current_logpoint_index >= this.logpoints.length) {
+            this.current_logpoint_index = this.logpoints.length - 1;
+        }
+        let x_value = new Date(this.logpoints[this.current_logpoint_index].time_iso);
+        this.chart.xAxis[0].removePlotLine("CURRENT");
+        this.chart.xAxis[0].addPlotLine({
+            id: "CURRENT",
+            width: 2,
+            value: x_value,
+            color: 'blue',
+            dashStyle: 'Solid',
+            zIndex: 5
+        });
+    }
+
+    inc_current_logpoint_index() {
+        this.set_current_logpoint_index(this.current_logpoint_index + 1);
+    }
+
+    dec_current_logpoint_index() {
+        this.set_current_logpoint_index(this.current_logpoint_index - 1);
+    }
+
     // Use Highcharts to draw a time/altitude plot
-    draw_chart(chart_el) {
+    draw_chart() {
             let parent = this;
+
+            this.clear_div(this.chart_el);
 
             // make string units value and scaler for Altitudes
             let alt_scaler = 1;
@@ -157,7 +213,7 @@ class B21_TrackLog {
             let point_speed;
 
             // Draw chart
-            this.chart = new Highcharts.chart(chart_el, {
+            this.chart = new Highcharts.chart(this.chart_el, {
                 chart: {
                     zoomType: 'x',
                     events: {
@@ -177,6 +233,11 @@ class B21_TrackLog {
 
                             // Update app with regard to selection
                             return parent.chart_selected(parent, e);
+                        },
+                        click: function (e) {
+                            console.log("chart clicked",e);
+                            let logpoint_index = parent.ts_to_logpoint_index(e.xAxis[0].value/1000);
+                            parent.set_current_logpoint_index(logpoint_index);
                         }
                     }
                 },
@@ -233,16 +294,18 @@ class B21_TrackLog {
                     series: {
                         animation: false,
                         cursor: 'pointer',
-                        events: {
-                            click: function(e) {
-                                console.log("graph click", e);
-                                //alert('You just clicked the graph at '+e.point.index);
-                            }
-                        },
+                        //events: {
+                            //click: function(e) {
+                            //    console.log("series click", e);
+                            //    return true;
+                            //    //alert('You just clicked the graph at '+e.point.index);
+                            //}
+                        //},
                         point: {
                             events: {
                                 click: function(e) {
-                                    console.log("point clicked ", e.point.index);
+                                    console.log("point click", e.point.index);
+                                    parent.set_current_logpoint_index(e.point.index);
                                 },
                                 mouseOver: function(e) {
                                     let p = parent.logpoints[e.target.index];
@@ -324,7 +387,11 @@ class B21_TrackLog {
         } // end draw_baro()
 
     // Calculate the Task start/finish times etc. for this TrackLog
+    // Updates this.scoring_data
     score_task() {
+
+        this.scoring_data = { status: "NOT STARTED", waypoints: []};
+
         let task = this.planner.task;
         if (task == null || task.start_index == null || task.finish_index == null) {
             console.log("TrackLog score task: no good task");
@@ -344,6 +411,8 @@ class B21_TrackLog {
 
             if (status == "PRE-START" || "STARTED") {
                 if (task.is_start(p1, p2)) {
+                    this.scoring_data.status = "STARTED";
+                    this.scoring_data.waypoints[task.start_index] = { "index": i };
                     let start_time_str = (new Date(p1.time_iso)).toTimeString().split(' ')[0];
                     console.log("TrackLog: started[" + i + "] at " + start_time_str);
 
@@ -364,6 +433,7 @@ class B21_TrackLog {
 
             if ((status == "STARTED" || status == "WAYPOINTS") && wp_index != task.finish_index) {
                 if (task.is_wp(wp_index, p1, p2)) {
+                    this.scoring_data.waypoints[wp_index] = { "index": i };
                     let wp_time_str = (new Date(p2.time_iso)).toTimeString().split(' ')[0];
                     console.log("TrackLog: WP[" + wp_index + "] logpoints[" + i + "] at " + wp_time_str);
                     let wp_name = task.waypoints[wp_index].name;
@@ -383,6 +453,8 @@ class B21_TrackLog {
                 }
             } else {
                 if (task.is_finish(p1, p2)) {
+                    this.scoring_data.status = "FINISHED";
+                    this.scoring_data.waypoints[wp_index] = { "index": i };
                     let finish_time_str = (new Date(p2.time_iso)).toTimeString().split(' ')[0];
                     console.log("TrackLog: Finish WP[" + wp_index + "] logpoints[" + i + "] at " + finish_time_str);
                     this.chart.xAxis[0].addPlotLine({
@@ -407,9 +479,39 @@ class B21_TrackLog {
         }
     }
 
+    clear_div(d) {
+        while (d.firstChild) {
+            d.removeChild(d.lastChild);
+        }
+    }
+
+    display() {
+        draw_chart();
+    }
+
     //DEBUG write TrackLog.display_info
     display_info() {
-        this.tracklog_info_el.innerHTML = "TRACKLOG "+this.get_filename();
+        this.display_task_info();
+        this.display_segment_info();
+        this.display_point_info();
     }
-    
+
+    // Display info for this TrackLog around the Task
+    display_task_info() {
+        this.clear_div(this.tracklog_info_task_el);
+        this.tracklog_info_task_el.innerHTML = "TRACKLOG TASK INFO";
+    }
+
+    // Display info for the TrackLog segment selected on the chart
+    display_segment_info() {
+        this.clear_div(this.tracklog_info_segment_el);
+        this.tracklog_info_segment_el.innerHTML = "TRACKLOG SEGMENT INFO";
+    }
+
+    // Display info for the current TrackLog point selected on the chart
+    display_point_info() {
+        this.clear_div(this.tracklog_info_point_el);
+        this.tracklog_info_point_el.innerHTML = "TRACKLOG POINT INFO";
+    }
+
 } // End class TrackLog

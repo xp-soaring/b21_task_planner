@@ -13,7 +13,7 @@ class B21_TaskPlanner {
         let parent = this;
 
         this.skyvector_button_el = document.getElementById("skyvector_button"); // So we can update action URL
-        this.charts_el = document.getElementById("charts");
+        this.chart_el = document.getElementById("chart");
         this.left_pane_tabs_el = document.getElementById("left_pane_tabs");
 
         this.tab_task_el = document.getElementById("tab_task");
@@ -361,16 +361,13 @@ class B21_TaskPlanner {
         if (this.tracklogs.length == 1) {
             let map_el = document.getElementById("map");
             map_el.style.height = "75%";
-            this.charts_el.style.display = "block";
+            this.chart_el.style.display = "block";
             this.map.invalidateSize();
 
             this.left_pane_tabs_el.style.display = 'block';
         }
 
-        let chart_el = document.createElement("div");
-        chart_el.className = "chart";
-        this.charts_el.appendChild(chart_el);
-        tracklog.draw_chart(chart_el);
+        tracklog.draw_chart();
         if (this.task != null) {
             tracklog.score_task();
         }
@@ -797,7 +794,7 @@ class B21_TaskPlanner {
         tracklog_name_el.onclick = function() {
             parent.set_current_tracklog(tracklog.index);
         };
-        tracklog_name_el.innerHTML = tracklog.get_filename();
+        tracklog_name_el.innerHTML = tracklog.get_name() + "<br/>" + tracklog.get_filename();
 
         tracklog_entry_el.appendChild(tracklog_name_el);
 

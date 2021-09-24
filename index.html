@@ -46,7 +46,7 @@ function loaded() {
 <body onload="loaded()">
     <div class="header">
         <div class="title">
-            <div class="title_text">B21 Task Planner v1.33</div>
+            <div class="title_text">B21 Task Planner v1.34</div>
             <div class="title_task_option">Soaring task: <input id="soaring_task_checkbox" type="checkbox" onclick="b21_task_planner.click_soaring_task(this)" checked/></div>
         </div>
     </div>
@@ -91,12 +91,16 @@ function loaded() {
             </div>
             <div id="task_info"></div>
             <div id="tracklogs_info">TRACKLOGS</div>
-            <div id="tracklog_info">TRACKLOG_INFO</div>
+            <div id="tracklog_info">
+                <div id="tracklog_info_task">TASK</div>
+                <div id="tracklog_info_segment">SEGMENT</div>
+                <div id="tracklog_info_point">POINT</div>
+            </div>
             <div id="drop_zone">CLICK MAP TO START, OR DROP MSFS FLIGHT PLAN HERE</div>
         </div> <!-- end left_pane -->
         <div id="right_pane">
             <div id="map"></div>
-            <div id="charts"></div>
+            <div id="chart"></div>
         </div>
         <div id="settings">
             <div id="settings_heading">
