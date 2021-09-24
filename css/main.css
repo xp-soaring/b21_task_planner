@@ -120,7 +120,7 @@ a {
 
 #left_pane_tabs {
     display: none; /* will enable when GPX is loaded */
-    font-size: 16px;
+    font-size: 22px;
 }
 
 .tab_active {
@@ -352,10 +352,21 @@ a {
 /* *************************************************** */
 
 #tracklog_info {
-    cursor: pointer;
     font-size: 16px;
     width: 100%;
+    cursor: default;
     display: none;
+}
+
+.tracklog_name {
+    text-align: center;
+    background-color: #e6ffff;
+}
+
+.tracklog_info_section_header {
+    background-color: pink;
+    text-align: center;
+    font-weight: bold;
 }
 
 /* *************************************************** */

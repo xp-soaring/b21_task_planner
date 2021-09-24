@@ -19,10 +19,9 @@ class B21_TrackLog {
         this.scoring_data = null;
         // HTML elements updated by TrackLog
         this.chart_el = document.getElementById("chart");
-        this.tracklog_info_el = document.getElementById("tracklog_info");
+        this.tracklog_info_header_el = document.getElementById("tracklog_info_header");
         this.tracklog_info_task_el = document.getElementById("tracklog_info_task");
-        this.tracklog_info_segment_el = document.getElementById("tracklog_info_segment");
-        this.tracklog_info_point_el = document.getElementById("tracklog_info_point");
+        this.tracklog_info_selected_el = document.getElementById("tracklog_info_selected");
 
         this.current_logpoint_index = null; // Currently selected logpoint
     }
@@ -309,7 +308,7 @@ class B21_TrackLog {
                                 },
                                 mouseOver: function(e) {
                                     let p = parent.logpoints[e.target.index];
-                                    let time_str = p.time_iso;
+                                    let time_str = parent.hh_mm_ss(p.time_iso);
                                     let speed_str = "Speed (" + speed_units_str + "): " + (p.speed_ms * speed_scaler).toFixed(
                                         0) + "<br/>";
                                     let alt_str = "Alt (" + alt_units_str + "): " + (p.alt_m * alt_scaler).toFixed(0);
@@ -386,6 +385,10 @@ class B21_TrackLog {
             point_speed = this.chart.renderer.label("", 10, 40).add();
         } // end draw_baro()
 
+    hh_mm_ss(time_iso) {
+        return (new Date(time_iso)).toTimeString().split(' ')[0];
+    }
+
     // Calculate the Task start/finish times etc. for this TrackLog
     // Updates this.scoring_data
     score_task() {
@@ -406,8 +409,8 @@ class B21_TrackLog {
 
         for (let i = 1; i < this.logpoints.length; i++) {
             let p2 = this.logpoints[i];
-            let time_str = (new Date(p2.time_iso)).toTimeString().split(' ')[0];
-            console.log("TrackLog.score_task()[" + i + "] at " + time_str, p2, status);
+            let time_str = this.hh_mm_ss(p2.time_iso);
+            //console.log("TrackLog.score_task()[" + i + "] at " + time_str, p2, status);
 
             if (status == "PRE-START" || "STARTED") {
                 if (task.is_start(p1, p2)) {
@@ -491,6 +494,11 @@ class B21_TrackLog {
 
     //DEBUG write TrackLog.display_info
     display_info() {
+        this.clear_div(this.tracklog_info_header_el);
+        let name_el = document.createElement("div");
+        name_el.className = "tracklog_name";
+        name_el.innerHTML = this.get_name() + "<br/>" + this.get_filename();
+        this.tracklog_info_header_el.appendChild(name_el);
         this.display_task_info();
         this.display_segment_info();
         this.display_point_info();
@@ -499,19 +507,39 @@ class B21_TrackLog {
     // Display info for this TrackLog around the Task
     display_task_info() {
         this.clear_div(this.tracklog_info_task_el);
-        this.tracklog_info_task_el.innerHTML = "TRACKLOG TASK INFO";
+        let header_el = document.createElement("div");
+        header_el.className = "tracklog_info_header";
+        header_el.innerHTML = "Tracklog Task Info:";
+        this.tracklog_info_task_el.appendChild(header_el);
+
+        //DEBUG set className for tracklog task info messages
+        if (this.planner.task.waypoints.length==0) {
+            let no_task_el = document.createElement("div");
+            no_task_el.innerHTML = "NO TASK LOADED";
+            this.tracklog_info_task_el.appendChild(no_task_el);
+            return;
+        }
+        if (this.scoring_data==null) {
+            let no_scoring_el = document.createElement("div");
+            no_scoring_el.innerHTML = "TRACKLOG NO SCORED";
+            this.tracklog_info_task_el.appendChild(no_scoring_el);
+            return;
+        }
     }
 
     // Display info for the TrackLog segment selected on the chart
     display_segment_info() {
-        this.clear_div(this.tracklog_info_segment_el);
-        this.tracklog_info_segment_el.innerHTML = "TRACKLOG SEGMENT INFO";
+        this.clear_div(this.tracklog_info_selected_el);
+        this.tracklog_info_selected_el.innerHTML = "TRACKLOG SEGMENT INFO";
     }
 
     // Display info for the current TrackLog point selected on the chart
     display_point_info() {
-        this.clear_div(this.tracklog_info_point_el);
-        this.tracklog_info_point_el.innerHTML = "TRACKLOG POINT INFO";
+        this.clear_div(this.tracklog_info_selected_el);
+        if (this.current_logpoint_index == null) {
+            return;
+        }
+        this.tracklog_info_selected_el.innerHTML = "TRACKLOG POINT INFO";
     }
 
 } // End class TrackLog

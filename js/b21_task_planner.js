@@ -25,10 +25,7 @@ class B21_TaskPlanner {
         this.tracklog_info_el = document.getElementById("tracklog_info");
 
         this.tracklogs = []; // Loaded tracklogs
-
         this.tracklog_index = null; // index of current tracklog
-
-        this.has_chart = false; // No chart is currently displayed (so Map can be full height)
 
         this.settings = new B21_Settings(this); // Load settings from localStorage
 
@@ -342,6 +339,7 @@ class B21_TaskPlanner {
             [this.task.min_lat, this.task.min_lng],
             [this.task.max_lat, this.task.max_lng]
         ]);
+        this.score_tracklogs();
     }
 
     // ********************************************************************************************
@@ -697,6 +695,16 @@ class B21_TaskPlanner {
             return;
         }
         this.airports.search(search_value, results_el);
+    }
+
+    // ********************************************************************************************
+    // TrackLog stuff
+    // ********************************************************************************************
+
+    score_tracklogs() {
+        for (let i=0; i<this.tracklogs.length; i++) {
+            this.tracklogs[i].score_task();
+        }
     }
 
     //DEBUG tracklog select should update map, chart
