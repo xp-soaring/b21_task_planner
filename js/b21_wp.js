@@ -354,8 +354,8 @@ class B21_WP {
         }
 
         let radius_m = this.radius_m == null ? this.RADIUS_DEFAULT_M : this.radius_m;
-        let distance_m = Geo.get_distance_m(p1, this.position);
-        if (distance_m > radius_m) {
+        let p1_distance_m = Geo.get_distance_m(p1, this.position);
+        if (p1_distance_m > radius_m) {
             //console.log("WP.is_start() false radius_m="+radius_m.toFixed(0)+" vs "+distance_m.toFixed(0));
             return false;
         }
@@ -365,8 +365,13 @@ class B21_WP {
             //console.log("WP.is_start() false p1 at "+wp_bearing_deg.toFixed(0)+" deg not in start sector");
             return false;
         }
-        // OK so p1 is in the start sector, now we need to see if p1->p2 crosses the start line
+        // OK so p1 is in the start sector, now we need to see if p2 is outside i.e. distance>radius or crosses the start line
         // We do this by seeing if p2 is in the 180-degree sector OPPOSITE the start sector
+        // First check radius:
+        if (Geo.get_distance_m(p2, this.position) > radius_m) {
+            return true;
+        }
+        // Inside radius, but have we crossed start line?
         let reverse_bearing_deg = (leg_bearing_deg + 180) % 360;
         wp_bearing_deg = Geo.get_bearing_deg(p2, this.position);
         let over_start_line = Geo.in_sector(reverse_bearing_deg, wp_bearing_deg, 180);

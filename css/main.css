@@ -369,6 +369,19 @@ a {
     font-weight: bold;
 }
 
+.tracklog_info_header {
+    border-top: 2px solid black;
+    font-weight: bold;
+}
+
+.tracklog_wp_info {
+    border-top: 2px solid #888888;
+}
+
+.tracklog_wp_info:hover {
+    background-color: #cccc88;
+}
+
 /* *************************************************** */
 /* ******* Settings              ********************* */
 /* *************************************************** */

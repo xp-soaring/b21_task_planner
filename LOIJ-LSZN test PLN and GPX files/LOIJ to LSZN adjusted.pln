@@ -30,7 +30,7 @@
 
         <ATCWaypoint id="*START +2165|5000/3000x2000">
             <ATCWaypointType>User</ATCWaypointType>
-            <WorldPosition>N47° 31' 51.17",E12° 25' 12.16",+002165.35</WorldPosition>
+            <WorldPosition>N47° 31' 51.17",E12° 25' 12.16",+002165.00</WorldPosition>
         </ATCWaypoint>
 
         <ATCWaypoint id="POI1 |9000/3000x1000">
@@ -55,7 +55,7 @@
 
         <ATCWaypoint id="*FINISH +1319|5000/1320x500">
             <ATCWaypointType>User</ATCWaypointType>
-            <WorldPosition>N47° 16' 20.91",E8° 36' 16.91",+001318.90</WorldPosition>
+            <WorldPosition>N47° 16' 20.65",E8° 36' 18.46",+001318.90</WorldPosition>
         </ATCWaypoint>
 
         <ATCWaypoint id="LSZN">

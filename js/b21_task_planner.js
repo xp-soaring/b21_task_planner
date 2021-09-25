@@ -19,7 +19,6 @@ class B21_TaskPlanner {
         this.tab_task_el = document.getElementById("tab_task");
         this.tab_tracklogs_el = document.getElementById("tab_tracklogs");
         this.tab_tracklog_el = document.getElementById("tab_tracklog");
-
         this.task_info_el = document.getElementById("task_info");
         this.tracklogs_info_el = document.getElementById("tracklogs_info");
         this.tracklog_info_el = document.getElementById("tracklog_info");
@@ -340,6 +339,7 @@ class B21_TaskPlanner {
             [this.task.max_lat, this.task.max_lng]
         ]);
         this.score_tracklogs();
+        this.show_task_info();
     }
 
     // ********************************************************************************************

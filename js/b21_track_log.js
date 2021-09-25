@@ -391,9 +391,13 @@ class B21_TrackLog {
 
     // Calculate the Task start/finish times etc. for this TrackLog
     // Updates this.scoring_data
+    // { started_ok: true,
+    //   finished_ok: true,
+    //   waypoints[wp_index] = { "logpoint_index": i }
+    // }
     score_task() {
 
-        this.scoring_data = { status: "NOT STARTED", waypoints: []};
+        this.scoring_data = { waypoints: []};
 
         let task = this.planner.task;
         if (task == null || task.start_index == null || task.finish_index == null) {
@@ -414,8 +418,8 @@ class B21_TrackLog {
 
             if (status == "PRE-START" || "STARTED") {
                 if (task.is_start(p1, p2)) {
-                    this.scoring_data.status = "STARTED";
-                    this.scoring_data.waypoints[task.start_index] = { "index": i };
+                    this.scoring_data.started_ok = true;
+                    this.scoring_data.waypoints[task.start_index] = { "logpoint_index": i };
                     let start_time_str = (new Date(p1.time_iso)).toTimeString().split(' ')[0];
                     console.log("TrackLog: started[" + i + "] at " + start_time_str);
 
@@ -436,7 +440,7 @@ class B21_TrackLog {
 
             if ((status == "STARTED" || status == "WAYPOINTS") && wp_index != task.finish_index) {
                 if (task.is_wp(wp_index, p1, p2)) {
-                    this.scoring_data.waypoints[wp_index] = { "index": i };
+                    this.scoring_data.waypoints[wp_index] = { "logpoint_index": i };
                     let wp_time_str = (new Date(p2.time_iso)).toTimeString().split(' ')[0];
                     console.log("TrackLog: WP[" + wp_index + "] logpoints[" + i + "] at " + wp_time_str);
                     let wp_name = task.waypoints[wp_index].name;
@@ -456,8 +460,8 @@ class B21_TrackLog {
                 }
             } else {
                 if (task.is_finish(p1, p2)) {
-                    this.scoring_data.status = "FINISHED";
-                    this.scoring_data.waypoints[wp_index] = { "index": i };
+                    this.scoring_data.finished_ok = true;
+                    this.scoring_data.waypoints[wp_index] = { "logpoint_index": i };
                     let finish_time_str = (new Date(p2.time_iso)).toTimeString().split(' ')[0];
                     console.log("TrackLog: Finish WP[" + wp_index + "] logpoints[" + i + "] at " + finish_time_str);
                     this.chart.xAxis[0].addPlotLine({
@@ -480,6 +484,12 @@ class B21_TrackLog {
         if (status != "FINISHED") {
             console.log("Task not finished, status=" + status + ", wp_index=" + wp_index);
         }
+    }
+
+    altitude_str(alt_m) {
+        let units_str = this.planner.settings.altitude_units == "m" ? "m" : "feet";
+        let units_factor = this.planner.settings.altitude_units == "m" ? 1 : this.planner.M_TO_FEET;
+        return (alt_m * units_factor).toFixed(0) + "&nbsp;"+units_str;
     }
 
     clear_div(d) {
@@ -506,6 +516,7 @@ class B21_TrackLog {
 
     // Display info for this TrackLog around the Task
     display_task_info() {
+        let task = this.planner.task;
         this.clear_div(this.tracklog_info_task_el);
         let header_el = document.createElement("div");
         header_el.className = "tracklog_info_header";
@@ -513,7 +524,7 @@ class B21_TrackLog {
         this.tracklog_info_task_el.appendChild(header_el);
 
         //DEBUG set className for tracklog task info messages
-        if (this.planner.task.waypoints.length==0) {
+        if (task.waypoints.length==0) {
             let no_task_el = document.createElement("div");
             no_task_el.innerHTML = "NO TASK LOADED";
             this.tracklog_info_task_el.appendChild(no_task_el);
@@ -521,10 +532,37 @@ class B21_TrackLog {
         }
         if (this.scoring_data==null) {
             let no_scoring_el = document.createElement("div");
-            no_scoring_el.innerHTML = "TRACKLOG NO SCORED";
+            no_scoring_el.innerHTML = "TRACKLOG NOT SCORED";
             this.tracklog_info_task_el.appendChild(no_scoring_el);
             return;
         }
+        for (let i=task.start_index; i<=task.finish_index; i++) {
+            let wp_score_info = this.scoring_data.waypoints[i];
+            let wp = task.waypoints[i];
+            if (wp_score_info!=null) {
+                let logpoint_index = wp_score_info["logpoint_index"];
+                let logpoint = this.logpoints[logpoint_index];
+                this.display_task_info_wp(this.tracklog_info_task_el, wp, logpoint);
+            } else {
+                this.display_task_info_wp_missed(this.tracklog_info_task_el, wp);
+            }
+        }
+    }
+
+    display_task_info_wp(task_info_el, wp, logpoint) {
+        let info_el = document.createElement("div");
+        info_el.className = "tracklog_wp_info";
+        info_el.innerHTML = wp.get_name()+" "+
+            this.hh_mm_ss(logpoint.time_iso) + " " +
+            this.altitude_str(logpoint.alt_m);
+        task_info_el.appendChild(info_el);
+    }
+
+    display_task_info_wp_missed(task_info_el, wp) {
+        let info_el = document.createElement("div");
+        info_el.className = "tracklog_wp_info";
+        info_el.innerHTML = wp.get_name()+" MISSED.";
+        task_info_el.appendChild(info_el);
     }
 
     // Display info for the TrackLog segment selected on the chart
