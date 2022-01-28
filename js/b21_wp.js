@@ -12,7 +12,9 @@ class B21_WP {
     constructor(planner, index = null, position = null, dom_wp = null) {
         this.planner = planner; // reference to B21TaskPlanner instance
 
-        this.RADIUS_DEFAULT_M = 500;
+        this.DEFAULT_RADIUS_M = 500;
+        this.DEFAULT_START_RADIUS_M = 1000;
+        this.DEFAULT_FINISH_RADIUS_M = 1000;
 
         if (dom_wp == null) {
             this.construct_new(index, position);
@@ -160,6 +162,14 @@ class B21_WP {
         });
     }
 
+    is_task_start() {
+        return this.index == this.planner.task.start_index;
+    }
+
+    is_task_finish() {
+        return this.index == this.planner.task.finish_index;
+    }
+
     get_name() {
         if (this.name == null) {
             return "WP " + this.index;
@@ -202,6 +212,14 @@ class B21_WP {
 
     set_radius(radius_m) {
         this.radius_m = radius_m;
+    }
+
+    // return Wp radius in meters
+    get_radius() {
+        if (this.radius_m != null) return this.radius_m;
+        if (this.is_task_start()) return this.DEFAULT_START_RADIUS_M;
+        if (this.is_task_finish()) return this.DEFAULT_FINISH_RADIUS_M;
+        return this.DEFAULT_RADIUS_M;
     }
 
     get_leg_bearing() {
@@ -353,7 +371,7 @@ class B21_WP {
             return false;
         }
 
-        let radius_m = this.radius_m == null ? this.RADIUS_DEFAULT_M : this.radius_m;
+        let radius_m = this.radius_m == null ? this.DEFAULT_RADIUS_M : this.radius_m;
         let p1_distance_m = Geo.get_distance_m(p1, this.position);
         if (p1_distance_m > radius_m) {
             //console.log("WP.is_start() false radius_m="+radius_m.toFixed(0)+" vs "+distance_m.toFixed(0));
@@ -407,7 +425,7 @@ class B21_WP {
             return false;
         }
 
-        let radius_m = this.radius_m == null ? this.RADIUS_DEFAULT_M : this.radius_m;
+        let radius_m = this.radius_m == null ? this.DEFAULT_RADIUS_M : this.radius_m;
         let distance_m = Geo.get_distance_m(p2, this.position);
         if (distance_m > radius_m) {
             //console.log("WP.is_finish() false p2 radius_m="+radius_m.toFixed(0)+" vs "+distance_m.toFixed(0));
@@ -446,7 +464,7 @@ class B21_WP {
             //console.log("in_wp_sector false min_alt_m="+this.min_alt_m+" vs "+p.alt_m);
             return false;
         }
-        let radius_m = this.radius_m == null ? this.RADIUS_DEFAULT_M : this.radius_m;
+        let radius_m = this.radius_m == null ? this.DEFAULT_RADIUS_M : this.radius_m;
         let distance_m = Geo.get_distance_m(p, this.position);
         let in_sector = distance_m < radius_m;
         //console.log("in_wp_sector "+in_sector+" radius_m="+radius_m+" vs "+distance_m.toFixed(1));

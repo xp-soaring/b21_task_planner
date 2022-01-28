@@ -30,6 +30,7 @@
     <script src="js/b21_wp.js"> </script>           <!-- B21_WP: internal representation of a gliding waypoint -->
     <script src="js/b21_task.js"> </script>         <!-- B21_Task: internal representation of a gliding task from FlightPlan -->
     <script src="js/b21_flight_plan.js"> </script>  <!-- B21_FlightPlan: Supports PLN files -->
+    <script src="js/b21_xcsoar_tsk.js"> </script>   <!-- B21_XCsoar_TSK: Supports XCSoar TSK files -->
     <script src="js/b21_task_planner.js"> </script> <!-- B21_TaskPlanner: the main app class -->
 <script>
 
@@ -52,8 +53,10 @@ function loaded() {
     </div>
 
     <div id="buttons">
-        <button onclick="b21_task_planner.download()"
-            title="Download .PLN file to your Downloads folder">Download FlightPlan</button>
+        <button onclick="b21_task_planner.download_pln()"
+            title="Download .PLN file to your Downloads folder">Download MSFS FlightPlan</button>
+        <button onclick="b21_task_planner.download_tsk()"
+            title="Download .TSK file to your Downloads folder">Download XCsoar Task</button>
         <button onclick="b21_task_planner.reset()"
             title="Delete the current task">Reset Task</button>
         <button onclick="b21_task_planner.update_elevations()"

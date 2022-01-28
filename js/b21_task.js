@@ -46,9 +46,28 @@ class B21_Task {
         }
     }
 
-    save_flightplan() {
+    // Save a MSFS FlightPlan
+    save_file_pln() {
         let fp = new B21_FlightPlan(this);
         let filename = fp.get_title() + ".pln";
+        let text = fp.get_text();
+
+        let element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        element.setAttribute('download', filename);
+
+        element.style.display = 'none';
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+    }
+
+    // Save a XCsoar Task
+    save_file_tsk() {
+        let fp = new B21_XCsoar_TSK(this);
+        let filename = fp.get_title() + ".tsk";
         let text = fp.get_text();
 
         let element = document.createElement('a');

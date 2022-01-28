@@ -43,7 +43,7 @@
             <WorldPosition>N47° 32' 40.40",E12° 24' 35.92",+004070.00</WorldPosition>
         </ATCWaypoint>
 
-        <ATCWaypoint id="*LOIK Finish+1572">
+        <ATCWaypoint id="*LOIK Finish+1572|/2000">
             <ATCWaypointType>User</ATCWaypointType>
             <WorldPosition>N47° 33' 59.93",E12° 7' 53.02",+001571.52</WorldPosition>
         </ATCWaypoint>
@@ -51,7 +51,7 @@
         <ATCWaypoint id="LOIK|/2000">
             <ATCWaypointType>Airport</ATCWaypointType>
             <WorldPosition>N47° 33' 52.57",E12° 7' 37.96",+001588.00</WorldPosition>
-            
+
             <ICAO>
                 <ICAOIdent>LOIK</ICAOIdent>
             </ICAO>

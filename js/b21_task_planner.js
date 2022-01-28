@@ -628,10 +628,20 @@ class B21_TaskPlanner {
         this.task.reset();
     }
 
-    download() {
-        console.log("download()");
+    download_pln() {
+        console.log("download_pln()");
         try {
-            this.task.save_flightplan();
+            this.task.save_file_pln();
+        } catch (e) {
+            alert(e);
+            return;
+        }
+    }
+
+    download_tsk() {
+        console.log("download_tsk()");
+        try {
+            this.task.save_file_tsk();
         } catch (e) {
             alert(e);
             return;
