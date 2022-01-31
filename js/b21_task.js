@@ -23,10 +23,10 @@ class B21_Task {
         this.max_lng = -180;
     }
 
-    load_flightplan(file_str) {
-        console.log("load_flightplan");
+    load_pln_str(pln_str) {
+        console.log("load_pln_str");
         const parser = new DOMParser();
-        const dom = parser.parseFromString(file_str, "application/xml");
+        const dom = parser.parseFromString(pln_str, "application/xml");
         let flight_plan_el = dom.getElementsByTagName("FlightPlan.FlightPlan")[0];
         let title = dom.getElementsByTagName("Title")[0].childNodes[0].nodeValue;
         // ***************************
@@ -41,14 +41,14 @@ class B21_Task {
         // Waypoints
         let dom_waypoints = dom.getElementsByTagName("ATCWaypoint"); //XMLNodeList
         for (let i = 0; i < dom_waypoints.length; i++) {
-            this.add_new_wp(null, dom_waypoints[i]);
+            this.add_pln_wp(dom_waypoints[i]);
             this.update_display();
         }
     }
 
     // Save a MSFS FlightPlan
     save_file_pln() {
-        let fp = new B21_FlightPlan(this);
+        let fp = new B21_MSFS_PLN(this);
         let filename = fp.get_title() + ".pln";
         let text = fp.get_text();
 
@@ -97,18 +97,21 @@ class B21_Task {
         return distance_m;
     }
 
-    add_new_wp(position, dom_wp = null) {
+    // Add a WP from a PLN waypoint entry
+    add_pln_wp(dom_wp) {
         //this.index = this.waypoints.length;
         let wp_index = this.index == null ? 0 : this.index + 1;
-        console.log(">>>>>>>task adding wp with index", wp_index);
+        console.log(">>>>>>>task adding pln wp with index", wp_index);
         let wp;
         try {
             // An exception will be generated if this WP should be ignored, e.g. TIMECRUIS
-            wp = new B21_WP(this.planner, wp_index, position, dom_wp);
+            wp = new B21_WP(this.planner);
+            wp.new_pln(wp_index, dom_wp);
         } catch (e) {
-            console.log("add_new_wp skipping:", e);
+            console.log("add_pln_wp skipping:", e);
             return;
         }
+        // Update task current index
         this.index = wp_index;
         //this.waypoints.push(wp);
         //INSERT this wp into waypoints at index
@@ -120,6 +123,23 @@ class B21_Task {
         return wp;
     }
 
+    // Add a WP from a point clicked on the map
+    add_point_wp(position) {
+        //this.index = this.waypoints.length;
+        let wp_index = this.index == null ? 0 : this.index + 1;
+        console.log(">>>>>>>task adding point with index", wp_index);
+        let wp = new B21_WP(this.planner);
+        wp.new_point(wp_index, position);
+        this.index = wp_index;
+        //this.waypoints.push(wp);
+        //INSERT this wp into waypoints at index
+        this.waypoints.splice(this.index, 0, wp);
+        if (wp.index > 0) {
+            this.add_line(this.waypoints[wp.index - 1], wp);
+        }
+        return wp;
+    }
+
     is_msfs_airport(type) {
         return type != null && type.includes("msfs") && type.includes("airport")
     }
@@ -128,7 +148,7 @@ class B21_Task {
     add_new_poi(position, type, poi_info) {
         // poi_info = {ident,name,alt_m,runways}
         console.log("task.add_new_poi ", position, type, poi_info);
-        let wp = this.add_new_wp(position);
+        let wp = this.add_point_wp(position);
 
         if (wp.index == 0 && !this.is_msfs_airport(type)) {
             alert("Hint: your first (and last) WP should be a MSFS airport (blue circle on map)");

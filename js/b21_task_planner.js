@@ -284,6 +284,7 @@ class B21_TaskPlanner {
             return;
         }
         if (name.toLowerCase().endsWith(".pln")) {
+            console.log("handle_drop for PLN file");
             parent.reset();
             parent.handle_pln_str(e.target.result, name);
             return;
@@ -303,7 +304,8 @@ class B21_TaskPlanner {
     // *********  Handle PLN file (from drop or URL)                   ****************************
     // ********************************************************************************************
 
-    // Load a PLN file from param_obj.pln URL
+    // Load a PLN file from "pln": "url"
+    // Currently param_obj is simply the parsed querystring
     load_pln_url(param_obj) {
         if (param_obj == null) {
             return;
@@ -313,10 +315,15 @@ class B21_TaskPlanner {
             return;
         }
 
-        let request_str = param_obj["pln"];
+        let request_url = param_obj["pln"];
 
-        console.log("load_pln_url", request_str);
-        fetch(request_str).then(response => {
+        console.log("load_pln_url", request_url);
+        // Get name from url, i.e. between last '/' and '.'
+        let name = request_url.slice(request_url.lastIndexOf('/')+1);
+        name = name.slice(0, name.lastIndexOf('.'));
+        console.log("load_pln_url name=",name);
+
+        fetch(request_url).then(response => {
             if (!response.ok) {
                 console.log("User PLN url fetch error");
                 return null;
@@ -324,16 +331,16 @@ class B21_TaskPlanner {
             return response.text();
         }).then(result_str => {
             console.log("load_pln_url return ok");
-            this.handle_pln_str(result_str);
+            this.handle_pln_str(result_str, name);
         }).catch(error => {
             console.error('Network error accessing user PLN URL:', error);
         });
     }
 
     //DEBUG load task should score TrackLogs
-    handle_pln_str(file_str) {
-        console.log("handle string containing PLN XML");
-        this.task.load_flightplan(file_str);
+    handle_pln_str(pln_str, name) {
+        console.log("handle string containing PLN XML '"+name+"'");
+        this.task.load_pln_str(pln_str);
         this.map.fitBounds([
             [this.task.min_lat, this.task.min_lng],
             [this.task.max_lat, this.task.max_lng]
@@ -346,12 +353,12 @@ class B21_TaskPlanner {
     // *********  Handle GPX file (from drop or URL)                   ****************************
     // ********************************************************************************************
 
-    handle_gpx_str(file_str, name) {
+    handle_gpx_str(gpx_str, name) {
         console.log("loading tracklogs[" + this.tracklogs.length + "]", name);
         let tracklog = new B21_TrackLog(this.tracklogs.length, this, this.map);
         this.tracklogs.push(tracklog);
         this.tracklog_index = this.tracklogs.length-1;
-        tracklog.load_gpx(file_str, name);
+        tracklog.load_gpx(gpx_str, name);
         tracklog.draw_map();
         // zoom the map to the polyline
         this.map.fitBounds(tracklog.polyline.getBounds());
@@ -437,7 +444,7 @@ class B21_TaskPlanner {
 
     map_left_click(parent, e) {
         let position = e.latlng;
-        this.add_new_wp(position);
+        this.add_task_point(position);
     }
 
     map_right_click(parent, e) {
@@ -461,9 +468,9 @@ class B21_TaskPlanner {
     }
 
     // User has clicked somewhere on the map
-    add_new_wp(position) {
-        console.log("add_new_wp " + position);
-        let wp = this.task.add_new_wp(position);
+    add_task_point(position) {
+        console.log("add_task_point " + position);
+        let wp = this.task.add_point_wp(position);
 
         this.map.closePopup();
 

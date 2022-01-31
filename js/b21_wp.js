@@ -9,21 +9,15 @@ class B21_WP {
     // or as a result of loading an MSFS flightplan:
     //          new WP(planner,index,null,WP_dom_object)
     //
-    constructor(planner, index = null, position = null, dom_wp = null) {
+    constructor(planner) {
         this.planner = planner; // reference to B21TaskPlanner instance
 
         this.DEFAULT_RADIUS_M = 500;
         this.DEFAULT_START_RADIUS_M = 1000;
         this.DEFAULT_FINISH_RADIUS_M = 1000;
-
-        if (dom_wp == null) {
-            this.construct_new(index, position);
-        } else {
-            this.construct_from_dom(index, dom_wp);
-        }
     }
 
-    construct_new(index, position) {
+    new_point(index, position) {
         console.log("new WP", index, position, name);
 
         //DEBUG highlight start/finish waypoints
@@ -53,7 +47,7 @@ class B21_WP {
         this.marker = this.create_marker();
     }
 
-    construct_from_dom(index, dom_wp) {
+    new_pln(index, dom_wp) {
         let name = dom_wp.getAttribute("id");
         console.log("New WP from dom:", name);
         if (this.planner.settings.soaring_task == 1 &&
@@ -76,7 +70,7 @@ class B21_WP {
         let runways = dom_wp.getElementsByTagName("RunwayNumberFP");
 
         console.log(world_position);
-        this.construct_new(index, new L.latLng(lat, lng));
+        this.new_point(index, new L.latLng(lat, lng));
 
         this.name = name;
         this.alt_m = parseFloat(world_pos_elements[2]) / this.planner.M_TO_FEET;
