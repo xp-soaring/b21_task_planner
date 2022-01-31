@@ -9,16 +9,54 @@ class B21_MSFS_PLN {
     constructor(task) {
 
         this.task = task;
+    }
 
-        this.check();
-
-        let header_text = this.get_header_text();
-        let wp_text = "";
-        for (let i=0; i<task.waypoints.length; i++) {
-            wp_text += this.get_wp_text(i);
+    load_pln_str(pln_str) {
+        console.log("load_pln_str");
+        const parser = new DOMParser();
+        const dom = parser.parseFromString(pln_str, "application/xml");
+        let flight_plan_el = dom.getElementsByTagName("FlightPlan.FlightPlan")[0];
+        let title = dom.getElementsByTagName("Title")[0].childNodes[0].nodeValue;
+        // ***************************
+        // Departure
+        let departure = {};
+        departure.id = dom.getElementsByTagName("DepartureID")[0].childNodes[0].nodeValue;
+        // ***************************
+        // Destination
+        let destination = {};
+        departure.id = dom.getElementsByTagName("DestinationID")[0].childNodes[0].nodeValue;
+        // ***************************
+        // Waypoints
+        let dom_waypoints = dom.getElementsByTagName("ATCWaypoint"); //XMLNodeList
+        for (let i = 0; i < dom_waypoints.length; i++) {
+            this.add_pln_wp(dom_waypoints[i]);
         }
-        let footer_text = this.get_footer_text();
-        this.text = header_text + wp_text + footer_text;
+    }
+
+    // Add a WP from a PLN waypoint entry
+    add_pln_wp(dom_wp) {
+        //this.index = this.waypoints.length;
+        let wp_index = this.task.index == null ? 0 : this.task.index + 1;
+        console.log(">>>>>>>b21_msfs_pln.add_pln_wp adding pln wp with index", wp_index);
+        let wp;
+        try {
+            // An exception will be generated if this WP should be ignored, e.g. TIMECRUIS
+            wp = new B21_WP(this.task.planner);
+            wp.new_pln(wp_index, dom_wp);
+        } catch (e) {
+            console.log("add_pln_wp skipping:", e);
+            return;
+        }
+        // Update task current index
+        this.task.index = wp_index;
+        //this.waypoints.push(wp);
+        //INSERT this wp into waypoints at index
+        this.task.waypoints.splice(wp_index, 0, wp);
+        if (wp_index > 0) {
+            this.task.add_line(this.task.waypoints[wp_index - 1], wp);
+        }
+        this.task.decode_wp_name(wp);
+        return wp;
     }
 
     check() {
@@ -48,7 +86,18 @@ class B21_MSFS_PLN {
     }
 
     get_text() {
-        return this.text;
+        this.check();
+
+        let header_text = this.get_header_text();
+        let wp_text = "";
+        for (let i=0; i<this.task.waypoints.length; i++) {
+            wp_text += this.get_wp_text(i);
+        }
+        let footer_text = this.get_footer_text();
+
+        let text = header_text + wp_text + footer_text;
+
+        return text;
     }
 
     get_title() {
