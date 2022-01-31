@@ -289,6 +289,12 @@ class B21_TaskPlanner {
             parent.handle_pln_str(e.target.result, name);
             return;
         }
+        if (name.toLowerCase().endsWith(".tsk")) {
+            console.log("handle_drop for TSK file");
+            parent.reset();
+            parent.handle_tsk_str(e.target.result, name);
+            return;
+        }
         if (name.toLowerCase().endsWith(".gpx")) {
             parent.handle_gpx_str(e.target.result, name);
             return;
@@ -304,6 +310,8 @@ class B21_TaskPlanner {
     // *********  Handle PLN file (from drop or URL)                   ****************************
     // ********************************************************************************************
 
+    //DEBUG add ?tsk= get url for TSK file
+    
     // Load a PLN file from "pln": "url"
     // Currently param_obj is simply the parsed querystring
     load_pln_url(param_obj) {
@@ -341,6 +349,17 @@ class B21_TaskPlanner {
     handle_pln_str(pln_str, name) {
         console.log("handle string containing PLN XML '"+name+"'");
         this.task.load_pln_str(pln_str);
+        this.map.fitBounds([
+            [this.task.min_lat, this.task.min_lng],
+            [this.task.max_lat, this.task.max_lng]
+        ]);
+        this.score_tracklogs();
+        this.show_task_info();
+    }
+
+    handle_tsk_str(tsk_str, name) {
+        console.log("handle string containing TSK XML '"+name+"'");
+        this.task.load_tsk_str(tsk_str);
         this.map.fitBounds([
             [this.task.min_lat, this.task.min_lng],
             [this.task.max_lat, this.task.max_lng]

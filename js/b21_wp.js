@@ -47,46 +47,6 @@ class B21_WP {
         this.marker = this.create_marker();
     }
 
-    new_pln(index, dom_wp) {
-        let name = dom_wp.getAttribute("id");
-        console.log("New WP from dom:", name);
-        if (this.planner.settings.soaring_task == 1 &&
-            (name == "TIMECRUIS" || name == "TIMECLIMB" || name == "TIMEVERT")) {
-            // Skip this waypoint, & tell the caller (Task) via an exception
-            throw "SKIP_WAYPOINT";
-        }
-        console.log("New WP from dom OK:", name);
-        // <WorldPosition>N40° 40' 38.62",W77° 37' 36.71",+000813.00</WorldPosition>
-        let world_position = dom_wp.getElementsByTagName("WorldPosition")[0].childNodes[0].nodeValue;
-        let world_pos_elements = world_position.split(","); // lat, lng, alt
-        let lat_elements = world_pos_elements[0].split(" ");
-        let lat = parseInt(lat_elements[0].slice(1)) + parseFloat(lat_elements[1]) / 60 + parseFloat(lat_elements[2]) / 3600;
-        lat = lat_elements[0][0] == "N" ? lat : -1 * lat;
-        let lng_elements = world_pos_elements[1].split(" ");
-        let lng = parseInt(lng_elements[0].slice(1)) + parseFloat(lng_elements[1]) / 60 + parseFloat(lng_elements[2]) / 3600;
-        lng = lng_elements[0][0] == "E" ? lng : -1 * lng;
-
-        let icao_codes = dom_wp.getElementsByTagName("ICAOIdent");
-        let runways = dom_wp.getElementsByTagName("RunwayNumberFP");
-
-        console.log(world_position);
-        this.new_point(index, new L.latLng(lat, lng));
-
-        this.name = name;
-        this.alt_m = parseFloat(world_pos_elements[2]) / this.planner.M_TO_FEET;
-        if (icao_codes.length > 0) {
-            this.data_icao = icao_codes[0].childNodes[0].nodeValue;
-            this.icao = this.data_icao;
-            console.log("Set icao to " + this.icao);
-        }
-        if (runways.length > 0) {
-            let runway_nodes = runways[0].childNodes;
-            if (runway_nodes.length > 0) {
-                this.runway = runways[0].childNodes[0].nodeValue;
-            }
-        }
-    }
-
     create_marker() {
         let marker = L.marker(this.position, {
             icon: this.get_icon(this.index),

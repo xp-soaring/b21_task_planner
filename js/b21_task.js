@@ -10,6 +10,7 @@ class B21_Task {
     }
 
     init() {
+        this.name = null;
         this.waypoints = [];
         this.index = null; // Index of current waypoint
         this.start_index = null;
@@ -28,6 +29,14 @@ class B21_Task {
         console.log("task.load_pln_str");
         let msfs_pln = new B21_MSFS_PLN(this);
         msfs_pln.load_pln_str(pln_str);
+        this.update_display();
+    }
+
+    // Initialize this task using an XCsoar TSK Flight Plan
+    load_tsk_str(tsk_str) {
+        console.log("task.load_tsk_str");
+        let xcsoar_tsk = new B21_XCsoar_TSK(this);
+        xcsoar_tsk.load_tsk_str(tsk_str);
         this.update_display();
     }
 
