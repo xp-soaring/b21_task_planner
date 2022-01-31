@@ -25,17 +25,29 @@ class B21_Task {
     }
 
     // Initialize this task using a MSFS Flight Plan
-    load_pln_str(pln_str) {
-        console.log("task.load_pln_str");
+    load_pln_str(pln_str, name) {
+        console.log(">>>>>>task.load_pln_str", name);
+        this.name = name.slice(0, name.lastIndexOf('.'));
         let msfs_pln = new B21_MSFS_PLN(this);
+        // Have msfs_pln update this task
         msfs_pln.load_pln_str(pln_str);
+        // Fix up the start and finish waypoints if the PLN didn't mark those.
+        console.log(">>>>>>>loaded PLN, start_index=",this.start_index);
+        if (this.start_index==null && this.waypoints.length > 0) {
+            this.start_index = 0;
+        }
+        if (this.finish_index==null && this.waypoints.length > 1) {
+            this.finish_index = this.waypoints.length - 1;
+        }
         this.update_display();
     }
 
     // Initialize this task using an XCsoar TSK Flight Plan
-    load_tsk_str(tsk_str) {
-        console.log("task.load_tsk_str");
+    load_tsk_str(tsk_str, name) {
+        console.log("task.load_tsk_str", name);
+        this.name = name.slice(0, name.lastIndexOf('.'));
         let xcsoar_tsk = new B21_XCsoar_TSK(this);
+        // Hav xcsoar_tsk update this task
         xcsoar_tsk.load_tsk_str(tsk_str);
         this.update_display();
     }

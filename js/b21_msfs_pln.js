@@ -149,6 +149,9 @@ class B21_MSFS_PLN {
     }
 
     get_title() {
+        if (this.task.name != null) {
+            return this.task.name;
+        }
         let first_wp = this.task.waypoints[0];
         let last_wp = this.task.waypoints[this.task.waypoints.length-1];
         let from = first_wp.icao != null ? first_wp.icao : first_wp.get_name();

@@ -266,7 +266,7 @@ class B21_TaskPlanner {
                 console.log('DataTransfer... file[' + i + '].name = ' + file.name);
                 let reader = new FileReader();
                 reader.addEventListener("load", (e) => {
-                    parent.handle_drop(parent, e);
+                    parent.handle_drop(parent, e, file.name);
                 });
                 // event fired when file reading failed
                 reader.addEventListener('error', (e) => {
@@ -311,7 +311,7 @@ class B21_TaskPlanner {
     // ********************************************************************************************
 
     //DEBUG add ?tsk= get url for TSK file
-    
+
     // Load a PLN file from "pln": "url"
     // Currently param_obj is simply the parsed querystring
     load_pln_url(param_obj) {
@@ -348,7 +348,7 @@ class B21_TaskPlanner {
     //DEBUG load task should score TrackLogs
     handle_pln_str(pln_str, name) {
         console.log("handle string containing PLN XML '"+name+"'");
-        this.task.load_pln_str(pln_str);
+        this.task.load_pln_str(pln_str, name);
         this.map.fitBounds([
             [this.task.min_lat, this.task.min_lng],
             [this.task.max_lat, this.task.max_lng]
@@ -359,7 +359,7 @@ class B21_TaskPlanner {
 
     handle_tsk_str(tsk_str, name) {
         console.log("handle string containing TSK XML '"+name+"'");
-        this.task.load_tsk_str(tsk_str);
+        this.task.load_tsk_str(tsk_str, name);
         this.map.fitBounds([
             [this.task.min_lat, this.task.min_lng],
             [this.task.max_lat, this.task.max_lng]
