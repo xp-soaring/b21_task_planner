@@ -12,6 +12,11 @@ class B21_TaskPlanner {
     init() {
         let parent = this;
 
+        this.id = localStorage.getItem('b21_task_planner_id');
+        if (this.id==null) {
+            this.id = this.create_guid();
+            localStorage.setItem('b21_task_planner_id', this.id);
+        }
         this.skyvector_button_el = document.getElementById("skyvector_button"); // So we can update action URL
         this.chart_el = document.getElementById("chart");
         this.left_pane_tabs_el = document.getElementById("left_pane_tabs");
@@ -50,6 +55,14 @@ class B21_TaskPlanner {
         console.log(this.querystring);
 
         this.load_pln_url(this.querystring);
+    }
+
+    create_guid() {
+       function _p8(s) {
+          var p = (Math.random().toString(16)+"000000000").substr(2,8);
+          return s ? "-" + p.substr(0,4) + "-" + p.substr(4,4) : p ;
+       }
+       return _p8() + _p8(true) + _p8(true) + _p8();
     }
 
     parse_querystring() {

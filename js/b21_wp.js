@@ -97,23 +97,37 @@ class B21_WP {
     }
 
     request_alt_m() {
-        let request_str = "https://api.open-elevation.com/api/v1/lookup?locations=" + this.position.lat + "," + this.position.lng;
+        let request_str = "https://tfc-app9.cl.cam.ac.uk/90adc1c1-2c02-46ce-a140-db0d7dda1b4e/lookup?locations=" + this.position.lat + "," + this.position.lng;
+        request_str += "&id=" + this.planner.id;
+        let request_error = false;
         console.log(request_str);
-        fetch(request_str).then(response => {
-            if (!response.ok) {
-                console.log("open-elevation.com fetch error");
-                return null;
-            }
-            return response.json();
-        }).then(results => {
-            console.log("open-elevation.com:", results["results"][0]["elevation"]);
-            this.alt_m = results["results"][0]["elevation"];
-            this.alt_m_updated = true;
-            this.display_menu();
-            this.planner.task.display_task_info();
-        }).catch(error => {
-            console.error('Network error accessing open-elevation.com:', error);
-        });
+        try {
+            fetch(request_str)
+            .then(response => {
+                if (!response.ok) {
+                    console.log(response);
+                    throw new Error(response.statusText);
+                }
+                console.log("response ok");
+                return response.json();
+            }).catch(error => {
+                request_error = true;
+                console.log('Elevation fetch error:', response.status, error);
+            }).then(results => {
+                console.log("handle results", request_error);
+                if (!request_error){
+                    console.log("elevation(m):", results["results"][0]["elevation"], "query time(s):", parseFloat(results["query_time"]).toFixed(6));
+                    this.alt_m = results["results"][0]["elevation"];
+                    this.alt_m_updated = true;
+                    this.display_menu();
+                    this.planner.task.display_task_info();
+                }
+            }).catch(error => {
+                console.log('Elevation access error:', error);
+            });
+        } catch (e) {
+            console.log('elevation request error');
+        }
     }
 
     is_task_start() {
